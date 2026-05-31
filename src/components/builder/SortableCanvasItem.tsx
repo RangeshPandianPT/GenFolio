@@ -68,6 +68,44 @@ export function SortableCanvasItem({ id, type, content = {}, isSelected = false,
             ))}
           </div>
         );
+      case "projects":
+        return (
+          <div className="space-y-4 p-6 bg-secondary/10 rounded-xl border border-border/50">
+            <h3 className="text-xl font-semibold">Projects</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {(content.items || [{ name: "Project 1", desc: "Description 1" }]).map((p: any, i: number) => (
+                <div key={i} className="p-4 bg-background border border-border/50 rounded-lg shadow-sm">
+                  <h4 className="font-bold text-lg">{p.name || "Project Name"}</h4>
+                  <p className="text-sm text-muted-foreground mt-2">{p.desc || "Project description goes here."}</p>
+                  {p.link && <a href={p.link} className="text-primary text-sm mt-4 inline-block hover:underline" target="_blank" rel="noreferrer">View Project →</a>}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      case "skills":
+        return (
+          <div className="space-y-4 p-6 bg-secondary/10 rounded-xl border border-border/50">
+            <h3 className="text-xl font-semibold">Skills</h3>
+            <div className="flex flex-wrap gap-2">
+              {(content.skills || ["React", "Next.js", "Tailwind CSS"]).map((s: string, i: number) => (
+                <span key={i} className="px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full text-sm font-medium">
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+        );
+      case "social":
+        return (
+          <div className="flex justify-center gap-4 py-8">
+            {(content.links || [{ platform: "Twitter", url: "#" }]).map((link: any, i: number) => (
+              <a key={i} href={link.url} className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors" target="_blank" rel="noreferrer">
+                {link.platform}
+              </a>
+            ))}
+          </div>
+        );
       default:
         return <div>Unknown Block</div>;
     }
