@@ -253,6 +253,19 @@ View it at: ${window.location.origin}/${docId}`);
     }
   };
 
+  const handleExport = async () => {
+    const { exportPortfolioToZip } = await import("@/lib/export");
+    const portfolioData = {
+      themeColor,
+      themeRadius,
+      themeFont,
+      themeMode,
+      seo: seoConfig,
+      blocks
+    };
+    await exportPortfolioToZip(portfolioData);
+  };
+
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId);
 
   if (isPreview) {
@@ -261,7 +274,57 @@ View it at: ${window.location.origin}/${docId}`);
         className={`min-h-screen ${themeMode === 'dark' ? 'dark bg-zinc-950 text-white' : 'bg-background text-foreground'} ${themeFont}`}
         style={{ '--primary': themeColor, '--radius': themeRadius } as React.CSSProperties}
       >
-        <button 
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-background/80 backdrop-blur-md p-2 rounded-full border border-border shadow-lg">
+          <button onClick={() => setIsPreview(false)} className="px-4 py-2 bg-secondary text-secondary-foreground rounded-full text-sm font-medium hover:bg-secondary/80">Back to Builder</button>
+          <button onClick={savePortfolio} disabled={isSaving} className="px-4 py-2 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2">
+            <Save className="w-4 h-4" />
+            {isSaving ? "Publishing..." : "Publish"}
+          </button>
+        </div>
+        <div className="max-w-5xl mx-auto py-12 px-8 flex flex-col gap-6 pt-24 pointer-events-none">
+          <DndContext>
+           <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
+              {blocks.map((block) => (
+                <SortableCanvasItem 
+                  key={block.id} id={block.id} type={block.type} content={block.content} onRemove={()=>{}}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className={`flex flex-col h-screen overflow-hidden ${themeMode === 'dark' ? 'dark bg-zinc-950 text-white' : 'bg-background text-foreground'} ${themeFont}`} style={{ '--primary': themeColor, '--radius': themeRadius } as React.CSSProperties}>
+        {/* Top Header */}
+        <header className="h-14 border-b border-border bg-card flex items-center justify-between px-6 shrink-0 z-20 relative">
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard" className="text-muted-foreground hover:text-foreground">
+              <ChevronLeft className="w-5 h-5" />
+            </Link>
+            <div className="font-semibold">{seoConfig.title || "Untitled Portfolio"}</div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={handleExport} className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md text-sm font-medium hover:bg-secondary/80 flex items-center gap-2 transition-colors">
+              <Code className="w-4 h-4" /> Export ZIP
+            </button>
+            <button onClick={() => setIsPreview(true)} className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md text-sm font-medium hover:bg-secondary/80 flex items-center gap-2 transition-colors">
+              <Eye className="w-4 h-4" /> Preview
+            </button>
+            <button onClick={savePortfolio} disabled={isSaving} className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 flex items-center gap-2 disabled:opacity-50 transition-colors">
+              <Save className="w-4 h-4" /> {isSaving ? "Saving..." : "Publish"}
+            </button>
+          </div>
+        </header>
+
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left Sidebar */}
+          <aside className="w-64 border-r border-border bg-card flex flex-col z-10 shrink-0 shadow-sm">
+            <div className="p-4 flex gap-2 border-b border-border/50">
+              <button 
                 onClick={() => setActiveTab("blocks")}
                 className={`flex-1 text-xs font-medium py-2 rounded-md transition-colors ${activeTab === "blocks" ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:bg-secondary/50"}`}
               >
