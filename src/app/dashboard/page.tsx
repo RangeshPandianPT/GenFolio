@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { collection, query, where, getDocs, deleteDoc, doc, addDoc } from "firebase/firestore";
 import Link from "next/link";
-import { LayoutDashboard, Plus, Edit2, Trash2, ExternalLink, Eye, LogOut } from "lucide-react";
+import { LayoutDashboard, Plus, Edit2, Trash2, ExternalLink, Eye, LogOut, Copy } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type PortfolioMeta = {
@@ -13,6 +13,7 @@ type PortfolioMeta = {
   seo?: { title: string; description: string };
   updatedAt: string;
   views?: number;
+  [key: string]: any;
 };
 
 export default function Dashboard() {
@@ -61,6 +62,27 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Error deleting portfolio", error);
       alert("Failed to delete portfolio");
+    }
+  };
+
+  const handleDuplicate = async (portfolio: PortfolioMeta) => {
+    try {
+      const { id, ...dataToCopy } = portfolio;
+      const duplicatedData = {
+        ...dataToCopy,
+        seo: {
+          ...dataToCopy.seo,
+          title: `${dataToCopy.seo?.title || "Untitled"} (Copy)`
+        },
+        views: 0,
+        updatedAt: new Date().toISOString()
+      };
+      
+      const docRef = await addDoc(collection(db, "portfolios"), duplicatedData);
+      setPortfolios([{ id: docRef.id, ...duplicatedData } as PortfolioMeta, ...portfolios]);
+    } catch (error) {
+      console.error("Error duplicating portfolio", error);
+      alert("Failed to duplicate portfolio");
     }
   };
 
@@ -161,6 +183,13 @@ export default function Dashboard() {
                     Edit
                   </Link>
                   <button 
+                    onClick={() => handleDuplicate(portfolio)}
+                    className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
+                    title="Duplicate Portfolio"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                  <button 
                     onClick={() => handleDelete(portfolio.id)}
                     className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
                     title="Delete Portfolio"
@@ -176,3 +205,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
