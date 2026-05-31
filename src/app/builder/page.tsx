@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Layout, Type, Image as ImageIcon, Briefcase, User, Settings, Save, Eye, ChevronLeft } from "lucide-react";
+import { Layout, Type, Image as ImageIcon, Briefcase, User, Settings, Save, Eye, ChevronLeft, Link as LinkIcon, Code, Hash, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import {
   DndContext,
@@ -24,7 +24,7 @@ import {
 import { DraggableSidebarItem } from "@/components/builder/DraggableSidebarItem";
 import { SortableCanvasItem } from "@/components/builder/SortableCanvasItem";
 import { db, auth } from "@/lib/firebase";
-import { collection, addDoc, doc, setDoc } from "firebase/firestore";
+import { collection, addDoc, doc, setDoc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { useEffect } from "react";
 
@@ -40,6 +40,9 @@ const getDefaultContent = (type: string) => {
     case "bio": return { name: "Your Name", description: "A short, engaging bio about who you are and what you do. This area can be enhanced by AI later!", imageUrl: "" };
     case "experience": return { title: "Job Title", company: "Company Name", period: "2020 - Present", description: "Brief description of your responsibilities and achievements in this role.", logoUrl: "" };
     case "gallery": return { images: ["", "", ""] };
+    case "projects": return { items: [{ name: "Awesome Project", desc: "Built with Next.js", link: "" }] };
+    case "skills": return { skills: ["React", "TypeScript", "Node.js"] };
+    case "social": return { links: [{ platform: "GitHub", url: "" }, { platform: "LinkedIn", url: "" }] };
     default: return {};
   }
 };
@@ -76,7 +79,14 @@ export default function Builder() {
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [isGeneratingBio, setIsGeneratingBio] = useState(false);
+  
   const [themeColor, setThemeColor] = useState('#6366f1');
+  const [themeRadius, setThemeRadius] = useState('0.5rem');
+  const [themeFont, setThemeFont] = useState('font-sans');
+  const [themeMode, setThemeMode] = useState('light');
+  const [seoConfig, setSeoConfig] = useState({ title: "My Portfolio", description: "" });
+  const [portfolioId, setPortfolioId] = useState<string | null>(null);
+
   const [isPreview, setIsPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -87,6 +97,28 @@ export default function Builder() {
       else setUserId(null);
     });
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get('id');
+    if (editId) {
+      setPortfolioId(editId);
+      const fetchPortfolio = async () => {
+        const docRef = doc(db, "portfolios", editId);
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+          const data = snap.data();
+          setBlocks(data.blocks || []);
+          setThemeColor(data.themeColor || '#6366f1');
+          setThemeRadius(data.themeRadius || '0.5rem');
+          setThemeFont(data.themeFont || 'font-sans');
+          setThemeMode(data.themeMode || 'light');
+          setSeoConfig(data.seo || { title: "My Portfolio", description: "" });
+        }
+      };
+      fetchPortfolio();
+    }
   }, []);
 
   const sensors = useSensors(
@@ -195,12 +227,24 @@ export default function Builder() {
       const portfolioData = {
         userId,
         themeColor,
+        themeRadius,
+        themeFont,
+        themeMode,
+        seo: seoConfig,
         blocks,
         updatedAt: new Date().toISOString(),
       };
 
-      const docRef = await addDoc(collection(db, "portfolios"), portfolioData);
-      alert(`Portfolio published successfully!\nView it at: ${window.location.origin}/${docRef.id}`);
+      let docId = portfolioId;
+      if (docId) {
+        await setDoc(doc(db, "portfolios", docId), portfolioData, { merge: true });
+      } else {
+        const docRef = await addDoc(collection(db, "portfolios"), portfolioData);
+        docId = docRef.id;
+        setPortfolioId(docId);
+      }
+      alert(`Portfolio published successfully!
+View it at: ${window.location.origin}/${docId}`);
     } catch (error) {
       console.error("Error saving portfolio: ", error);
       alert("Failed to publish portfolio.");
@@ -214,117 +258,10 @@ export default function Builder() {
   if (isPreview) {
     return (
       <div 
-        className="min-h-screen bg-background text-foreground"
-        style={{ '--primary': themeColor } as React.CSSProperties}
+        className={`min-h-screen ${themeMode === 'dark' ? 'dark bg-zinc-950 text-white' : 'bg-background text-foreground'} ${themeFont}`}
+        style={{ '--primary': themeColor, '--radius': themeRadius } as React.CSSProperties}
       >
         <button 
-          onClick={() => setIsPreview(false)}
-          className="fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Exit Preview
-        </button>
-        <div className="max-w-5xl mx-auto py-12 px-8 flex flex-col gap-6">
-          {blocks.map((block) => (
-            <div key={block.id}>
-              {block.type === "section" && <div className="h-16" />}
-              {block.type === "heading" && <h1 className="text-5xl font-bold tracking-tight">{block.content?.text}</h1>}
-              {block.type === "bio" && (
-                <div className="flex flex-col md:flex-row items-center md:items-start gap-8 py-12">
-                  {block.content?.imageUrl && (
-                    <div className="w-40 h-40 rounded-full overflow-hidden shrink-0 shadow-xl border-4 border-background">
-                      <img src={block.content.imageUrl} alt="Profile" className="w-full h-full object-cover" />
-                    </div>
-                  )}
-                  <div className="space-y-4 text-center md:text-left">
-                    <h2 className="text-4xl font-extrabold">{block.content?.name}</h2>
-                    <p className="text-xl text-muted-foreground leading-relaxed max-w-2xl">{block.content?.description}</p>
-                  </div>
-                </div>
-              )}
-              {block.type === "experience" && (
-                <div className="flex gap-6 py-6 border-b border-border/50 last:border-0">
-                  {block.content?.logoUrl ? (
-                    <div className="w-16 h-16 rounded-xl bg-secondary/50 shrink-0 overflow-hidden shadow-sm">
-                      <img src={block.content.logoUrl} alt="Logo" className="w-full h-full object-cover" />
-                    </div>
-                  ) : (
-                    <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <Briefcase className="w-8 h-8 text-primary" />
-                    </div>
-                  )}
-                  <div className="space-y-2">
-                    <h4 className="text-xl font-bold">{block.content?.title}</h4>
-                    <div className="flex items-center gap-2 text-primary font-medium">
-                      <span>{block.content?.company}</span>
-                      <span className="text-muted-foreground">•</span>
-                      <span className="text-muted-foreground">{block.content?.period}</span>
-                    </div>
-                    <p className="text-muted-foreground leading-relaxed mt-4 whitespace-pre-wrap">{block.content?.description}</p>
-                  </div>
-                </div>
-              )}
-              {block.type === "gallery" && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 py-8">
-                  {(block.content?.images || []).map((img: string, i: number) => img ? (
-                    <div key={i} className="aspect-video rounded-xl overflow-hidden shadow-md group">
-                      <img src={img} alt={`Gallery ${i}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    </div>
-                  ) : null)}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <div 
-        className="min-h-screen bg-background flex flex-col overflow-hidden" 
-        style={{ '--primary': themeColor } as React.CSSProperties}
-      >
-        {/* Top Navbar */}
-        <header className="h-14 border-b border-border glass flex items-center justify-between px-4 z-10 shrink-0">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-              <ChevronLeft className="w-4 h-4" />
-              <span className="text-sm font-medium">Back to Home</span>
-            </Link>
-            <div className="h-4 w-px bg-border"></div>
-            <span className="text-sm font-semibold tracking-tight">Untitled Portfolio</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setIsPreview(true)}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Eye className="w-4 h-4" />
-              Preview
-            </button>
-            <button 
-              onClick={savePortfolio}
-              disabled={isSaving}
-              className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors disabled:opacity-50"
-            >
-              <Save className="w-4 h-4" />
-              {isSaving ? "Saving..." : "Publish"}
-            </button>
-          </div>
-        </header>
-
-        <div className="flex flex-1 overflow-hidden">
-          {/* Left Sidebar - Tools & Elements */}
-          <aside className="w-64 border-r border-border glass-panel flex flex-col z-10 shrink-0">
-            <div className="flex p-2 border-b border-border/50 gap-1">
-              <button 
                 onClick={() => setActiveTab("blocks")}
                 className={`flex-1 text-xs font-medium py-2 rounded-md transition-colors ${activeTab === "blocks" ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:bg-secondary/50"}`}
               >
@@ -335,6 +272,12 @@ export default function Builder() {
                 className={`flex-1 text-xs font-medium py-2 rounded-md transition-colors ${activeTab === "theme" ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:bg-secondary/50"}`}
               >
                 Theme
+              </button>
+              <button 
+                onClick={() => setActiveTab("settings")}
+                className={`flex-1 text-xs font-medium py-2 rounded-md transition-colors ${activeTab === "settings" ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:bg-secondary/50"}`}
+              >
+                Settings
               </button>
             </div>
 
@@ -355,6 +298,9 @@ export default function Builder() {
                       <DraggableSidebarItem id="sidebar-bio" type="bio" label="Hero / Bio" icon={User} />
                       <DraggableSidebarItem id="sidebar-experience" type="experience" label="Experience" icon={Briefcase} />
                       <DraggableSidebarItem id="sidebar-gallery" type="gallery" label="Gallery" icon={ImageIcon} />
+                      <DraggableSidebarItem id="sidebar-projects" type="projects" label="Projects" icon={Code} />
+                      <DraggableSidebarItem id="sidebar-skills" type="skills" label="Skills" icon={Hash} />
+                      <DraggableSidebarItem id="sidebar-social" type="social" label="Social Links" icon={LinkIcon} />
                     </div>
                   </div>
                 </>
@@ -372,6 +318,59 @@ export default function Builder() {
                           }`}
                         />
                       ))}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Border Radius</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['0', '0.5rem', '9999px'].map((r, i) => (
+                        <button key={i} onClick={() => setThemeRadius(r)} className={`px-2 py-1 text-xs border rounded-md ${themeRadius === r ? 'bg-primary text-primary-foreground border-primary' : 'border-border'}`}>
+                          {r === '0' ? 'Sharp' : r === '0.5rem' ? 'Rounded' : 'Pill'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Typography</h3>
+                    <div className="flex flex-col gap-2">
+                      {['font-sans', 'font-serif', 'font-mono'].map((f, i) => (
+                        <button key={i} onClick={() => setThemeFont(f)} className={`px-3 py-2 text-sm border rounded-md text-left ${themeFont === f ? 'bg-primary text-primary-foreground border-primary' : 'border-border'}`}>
+                          {f.replace('font-', '')}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Appearance</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button onClick={() => setThemeMode('light')} className={`px-2 py-1 text-xs border rounded-md ${themeMode === 'light' ? 'bg-primary text-primary-foreground border-primary' : 'border-border'}`}>Light</button>
+                      <button onClick={() => setThemeMode('dark')} className={`px-2 py-1 text-xs border rounded-md ${themeMode === 'dark' ? 'bg-primary text-primary-foreground border-primary' : 'border-border'}`}>Dark</button>
+                    </div>
+                  </div>
+                </div>
+              ) : activeTab === "settings" ? (
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">SEO Settings</h3>
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium">Page Title</label>
+                      <input 
+                        type="text" 
+                        value={seoConfig.title} 
+                        onChange={(e) => setSeoConfig({...seoConfig, title: e.target.value})}
+                        className="w-full text-sm px-3 py-2 bg-background border border-border rounded-md"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium">Meta Description</label>
+                      <textarea 
+                        value={seoConfig.description} 
+                        onChange={(e) => setSeoConfig({...seoConfig, description: e.target.value})}
+                        className="w-full text-sm px-3 py-2 bg-background border border-border rounded-md min-h-[80px]"
+                      />
                     </div>
                   </div>
                 </div>
@@ -541,6 +540,113 @@ export default function Builder() {
                             className="w-full text-sm px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
                             placeholder="https://..."
                           />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedBlock.type === "projects" && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-medium">Projects</h4>
+                        <button 
+                          onClick={() => {
+                            const newItems = [...(selectedBlock.content?.items || []), { name: "", desc: "", link: "" }];
+                            updateBlockContent(selectedBlock.id, { items: newItems });
+                          }}
+                          className="text-[10px] bg-secondary px-2 py-1 rounded"
+                        >+ Add</button>
+                      </div>
+                      {(selectedBlock.content?.items || []).map((item: any, index: number) => (
+                        <div key={index} className="p-3 border border-border rounded-md space-y-2 bg-secondary/20">
+                          <input 
+                            type="text" placeholder="Name" value={item.name}
+                            onChange={(e) => {
+                              const newItems = [...selectedBlock.content.items];
+                              newItems[index].name = e.target.value;
+                              updateBlockContent(selectedBlock.id, { items: newItems });
+                            }}
+                            className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
+                          />
+                          <input 
+                            type="text" placeholder="Description" value={item.desc}
+                            onChange={(e) => {
+                              const newItems = [...selectedBlock.content.items];
+                              newItems[index].desc = e.target.value;
+                              updateBlockContent(selectedBlock.id, { items: newItems });
+                            }}
+                            className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
+                          />
+                          <input 
+                            type="text" placeholder="Link URL" value={item.link}
+                            onChange={(e) => {
+                              const newItems = [...selectedBlock.content.items];
+                              newItems[index].link = e.target.value;
+                              updateBlockContent(selectedBlock.id, { items: newItems });
+                            }}
+                            className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
+                          />
+                          <button onClick={() => {
+                            const newItems = [...selectedBlock.content.items];
+                            newItems.splice(index, 1);
+                            updateBlockContent(selectedBlock.id, { items: newItems });
+                          }} className="text-[10px] text-destructive">Remove</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedBlock.type === "skills" && (
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-medium">Skills (comma separated)</h4>
+                      <textarea
+                        value={(selectedBlock.content?.skills || []).join(", ")}
+                        onChange={(e) => {
+                          const skills = e.target.value.split(",").map(s => s.trim()).filter(Boolean);
+                          updateBlockContent(selectedBlock.id, { skills });
+                        }}
+                        className="w-full text-sm px-3 py-2 bg-background border border-border rounded-md min-h-[80px]"
+                      />
+                    </div>
+                  )}
+
+                  {selectedBlock.type === "social" && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-medium">Links</h4>
+                        <button 
+                          onClick={() => {
+                            const newLinks = [...(selectedBlock.content?.links || []), { platform: "New Link", url: "" }];
+                            updateBlockContent(selectedBlock.id, { links: newLinks });
+                          }}
+                          className="text-[10px] bg-secondary px-2 py-1 rounded"
+                        >+ Add</button>
+                      </div>
+                      {(selectedBlock.content?.links || []).map((link: any, index: number) => (
+                        <div key={index} className="flex gap-2 items-center">
+                          <input 
+                            type="text" placeholder="Platform" value={link.platform}
+                            onChange={(e) => {
+                              const newLinks = [...selectedBlock.content.links];
+                              newLinks[index].platform = e.target.value;
+                              updateBlockContent(selectedBlock.id, { links: newLinks });
+                            }}
+                            className="w-1/3 text-xs px-2 py-1 bg-background border border-border rounded"
+                          />
+                          <input 
+                            type="text" placeholder="URL" value={link.url}
+                            onChange={(e) => {
+                              const newLinks = [...selectedBlock.content.links];
+                              newLinks[index].url = e.target.value;
+                              updateBlockContent(selectedBlock.id, { links: newLinks });
+                            }}
+                            className="flex-1 text-xs px-2 py-1 bg-background border border-border rounded"
+                          />
+                          <button onClick={() => {
+                            const newLinks = [...selectedBlock.content.links];
+                            newLinks.splice(index, 1);
+                            updateBlockContent(selectedBlock.id, { links: newLinks });
+                          }} className="text-[10px] text-destructive">X</button>
                         </div>
                       ))}
                     </div>
