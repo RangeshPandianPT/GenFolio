@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { collection, query, where, getDocs, deleteDoc, doc, addDoc } from "firebase/firestore";
 import Link from "next/link";
-import { LayoutDashboard, Plus, Edit2, Trash2, ExternalLink, Eye, LogOut, Copy } from "lucide-react";
+import { LayoutDashboard, Plus, Edit2, Trash2, ExternalLink, Eye, LogOut, Copy, BarChart2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 type PortfolioMeta = {
   id: string;
@@ -21,6 +22,25 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const router = useRouter();
+
+  const chartData = useMemo(() => {
+    const data = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const displayDate = d.toLocaleDateString('en-US', { weekday: 'short' });
+      
+      let totalViews = 0;
+      portfolios.forEach(p => {
+        if (p.viewStats && p.viewStats[dateStr]) {
+          totalViews += p.viewStats[dateStr];
+        }
+      });
+      data.push({ date: displayDate, views: totalViews, fullDate: dateStr });
+    }
+    return data;
+  }, [portfolios]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -128,6 +148,28 @@ export default function Dashboard() {
             Create New
           </Link>
         </div>
+
+        {portfolios.length > 0 && (
+          <div className="mb-12">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <BarChart2 className="w-5 h-5 text-primary" />
+              Analytics (Last 7 Days)
+            </h2>
+            <div className="bg-card border border-border rounded-xl p-6 h-[300px] shadow-sm">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
+                  <Tooltip 
+                    cursor={{ fill: 'currentColor', opacity: 0.05 }}
+                    contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: '0.5rem', color: 'var(--foreground)' }}
+                  />
+                  <Bar dataKey="views" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
 
         {portfolios.length === 0 ? (
           <div className="bg-card border border-border rounded-xl p-12 text-center flex flex-col items-center">
