@@ -1,38 +1,44 @@
 import { NextResponse } from "next/server";
 
-const ADJECTIVES = ["passionate", "creative", "driven", "innovative", "results-oriented", "detail-oriented"];
-const ROLES = ["Full-stack Developer", "Software Engineer", "Frontend Specialist", "UI/UX Designer", "Product Builder"];
-const EXPERIENCES = ["building scalable web applications", "crafting intuitive user experiences", "architecting robust backend systems", "developing modern responsive interfaces"];
-const GOALS = ["always striving to deliver exceptional user experiences", "focusing on clean, maintainable code", "bridging the gap between design and engineering", "solving complex problems with elegant solutions"];
-const CLOSINGS = ["Let's build something amazing together!", "I'm always open to new opportunities and collaborations.", "Check out my work below to see what I can do.", "Let's turn your ideas into reality."];
-
-function getRandomElement(arr: string[]) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { name, currentBio } = body;
     
-    // In a real app with an API key, we would use fetch to call OpenAI or Gemini here.
-    // e.g., await fetch('https://api.openai.com/v1/chat/completions', { ... })
-    // For now, we simulate AI magic by dynamically generating a professional bio based on the input name!
+    const apiKey = process.env.GEMINI_API_KEY;
     
-    const adjective = getRandomElement(ADJECTIVES);
-    const role = getRandomElement(ROLES);
-    const experience = getRandomElement(EXPERIENCES);
-    const goal = getRandomElement(GOALS);
-    const closing = getRandomElement(CLOSINGS);
-    
-    const displayName = name && name.trim() !== "Your Name" ? name : "a professional";
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const generatedBio = `I am ${displayName}, a ${adjective} ${role} with a focus on ${experience}. I specialize in modern web technologies, ${goal}. ${closing}`;
+    if (!apiKey) {
+      // Fallback if no API key is provided
+      const displayName = name && name.trim() !== "Your Name" ? name : "a professional";
+      return NextResponse.json({ bio: `I am ${displayName}, a creative professional. Please add GEMINI_API_KEY to your .env file for AI generated bios!` });
+    }
 
-    return NextResponse.json({ bio: generatedBio });
+    const prompt = `Write a professional, engaging, and modern portfolio bio for a person named ${name || 'someone'}. 
+    Current bio context (if any): ${currentBio || 'None'}.
+    Make it sound confident and professional, highlighting their skills and passion. Keep it to 3-4 sentences. Do not include quotes.`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate with Gemini API');
+    }
+
+    const data = await response.json();
+    const generatedBio = data.candidates[0]?.content?.parts[0]?.text || "Failed to generate bio.";
+
+    return NextResponse.json({ bio: generatedBio.trim() });
   } catch (error) {
     console.error("Error generating bio:", error);
     return NextResponse.json({ error: "Failed to generate bio" }, { status: 500 });

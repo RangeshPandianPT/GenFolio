@@ -19,7 +19,7 @@ export default function Home() {
             <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition-colors">
               Log in
             </Link>
-            <Link href="/signup" className="text-sm font-medium bg-white text-black px-4 py-2 rounded-full hover:bg-white/90 transition-colors">
+            <Link href="/builder" className="text-sm font-medium bg-white text-black px-4 py-2 rounded-full hover:bg-white/90 transition-colors">
               Get Started
             </Link>
           </div>

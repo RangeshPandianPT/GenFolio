@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Layout, Type, Image as ImageIcon, Briefcase, User, Settings, Save, Eye, ChevronLeft, Link as LinkIcon, Code, Hash, LayoutDashboard } from "lucide-react";
+import { Layout, Type, Image as ImageIcon, Briefcase, User, Settings, Save, Eye, ChevronLeft, Link as LinkIcon, Code, Hash, LayoutDashboard, Mail, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import {
   DndContext,
@@ -23,9 +23,10 @@ import {
 } from "@dnd-kit/sortable";
 import { DraggableSidebarItem } from "@/components/builder/DraggableSidebarItem";
 import { SortableCanvasItem } from "@/components/builder/SortableCanvasItem";
-import { db, auth } from "@/lib/firebase";
+import { db, auth, storage } from "@/lib/firebase";
 import { collection, addDoc, doc, setDoc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useEffect } from "react";
 
 type Block = {
@@ -43,6 +44,8 @@ const getDefaultContent = (type: string) => {
     case "projects": return { items: [{ name: "Awesome Project", desc: "Built with Next.js", link: "" }] };
     case "skills": return { skills: ["React", "TypeScript", "Node.js"] };
     case "social": return { links: [{ platform: "GitHub", url: "" }, { platform: "LinkedIn", url: "" }] };
+    case "contact": return { title: "Get in touch", description: "Drop me a message!" };
+    case "testimonials": return { items: [{ name: "Client Name", role: "CEO", text: "Amazing work! Highly recommended." }] };
     default: return {};
   }
 };
@@ -90,6 +93,41 @@ export default function Builder() {
   const [isPreview, setIsPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [uploadingState, setUploadingState] = useState<{[key: string]: boolean}>({});
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, blockId: string, path: string, arrayIndex?: number) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!userId) {
+      alert("Please sign in to upload images.");
+      return;
+    }
+
+    const uploadId = `${blockId}-${path}-${arrayIndex ?? 0}`;
+    setUploadingState(prev => ({ ...prev, [uploadId]: true }));
+    
+    try {
+      const storageRef = ref(storage, `users/${userId}/portfolios/${portfolioId || 'temp'}/${Date.now()}_${file.name}`);
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      
+      const block = blocks.find(b => b.id === blockId);
+      if (!block) return;
+      
+      if (typeof arrayIndex === 'number' && block.content[path] && Array.isArray(block.content[path])) {
+        const newArray = [...block.content[path]];
+        newArray[arrayIndex] = downloadURL;
+        updateBlockContent(blockId, { [path]: newArray });
+      } else {
+        updateBlockContent(blockId, { [path]: downloadURL });
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert("Failed to upload image. Check Firebase Storage rules.");
+    } finally {
+      setUploadingState(prev => ({ ...prev, [uploadId]: false }));
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -253,6 +291,19 @@ View it at: ${window.location.origin}/${docId}`);
     }
   };
 
+  const handleExport = async () => {
+    const { exportPortfolioToZip } = await import("@/lib/export");
+    const portfolioData = {
+      themeColor,
+      themeRadius,
+      themeFont,
+      themeMode,
+      seo: seoConfig,
+      blocks
+    };
+    await exportPortfolioToZip(portfolioData);
+  };
+
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId);
 
   if (isPreview) {
@@ -261,7 +312,57 @@ View it at: ${window.location.origin}/${docId}`);
         className={`min-h-screen ${themeMode === 'dark' ? 'dark bg-zinc-950 text-white' : 'bg-background text-foreground'} ${themeFont}`}
         style={{ '--primary': themeColor, '--radius': themeRadius } as React.CSSProperties}
       >
-        <button 
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-background/80 backdrop-blur-md p-2 rounded-full border border-border shadow-lg">
+          <button onClick={() => setIsPreview(false)} className="px-4 py-2 bg-secondary text-secondary-foreground rounded-full text-sm font-medium hover:bg-secondary/80">Back to Builder</button>
+          <button onClick={savePortfolio} disabled={isSaving} className="px-4 py-2 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2">
+            <Save className="w-4 h-4" />
+            {isSaving ? "Publishing..." : "Publish"}
+          </button>
+        </div>
+        <div className="max-w-5xl mx-auto py-12 px-8 flex flex-col gap-6 pt-24 pointer-events-none">
+          <DndContext>
+           <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
+              {blocks.map((block) => (
+                <SortableCanvasItem 
+                  key={block.id} id={block.id} type={block.type} content={block.content} onRemove={()=>{}}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className={`flex flex-col h-screen overflow-hidden ${themeMode === 'dark' ? 'dark bg-zinc-950 text-white' : 'bg-background text-foreground'} ${themeFont}`} style={{ '--primary': themeColor, '--radius': themeRadius } as React.CSSProperties}>
+        {/* Top Header */}
+        <header className="h-14 border-b border-border bg-card flex items-center justify-between px-6 shrink-0 z-20 relative">
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard" className="text-muted-foreground hover:text-foreground">
+              <ChevronLeft className="w-5 h-5" />
+            </Link>
+            <div className="font-semibold">{seoConfig.title || "Untitled Portfolio"}</div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={handleExport} className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md text-sm font-medium hover:bg-secondary/80 flex items-center gap-2 transition-colors">
+              <Code className="w-4 h-4" /> Export ZIP
+            </button>
+            <button onClick={() => setIsPreview(true)} className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md text-sm font-medium hover:bg-secondary/80 flex items-center gap-2 transition-colors">
+              <Eye className="w-4 h-4" /> Preview
+            </button>
+            <button onClick={savePortfolio} disabled={isSaving} className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 flex items-center gap-2 disabled:opacity-50 transition-colors">
+              <Save className="w-4 h-4" /> {isSaving ? "Saving..." : "Publish"}
+            </button>
+          </div>
+        </header>
+
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left Sidebar */}
+          <aside className="w-64 border-r border-border bg-card flex flex-col z-10 shrink-0 shadow-sm">
+            <div className="p-4 flex gap-2 border-b border-border/50">
+              <button 
                 onClick={() => setActiveTab("blocks")}
                 className={`flex-1 text-xs font-medium py-2 rounded-md transition-colors ${activeTab === "blocks" ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:bg-secondary/50"}`}
               >
@@ -301,10 +402,12 @@ View it at: ${window.location.origin}/${docId}`);
                       <DraggableSidebarItem id="sidebar-projects" type="projects" label="Projects" icon={Code} />
                       <DraggableSidebarItem id="sidebar-skills" type="skills" label="Skills" icon={Hash} />
                       <DraggableSidebarItem id="sidebar-social" type="social" label="Social Links" icon={LinkIcon} />
+                      <DraggableSidebarItem id="sidebar-testimonials" type="testimonials" label="Testimonials" icon={MessageSquare} />
+                      <DraggableSidebarItem id="sidebar-contact" type="contact" label="Contact Form" icon={Mail} />
                     </div>
                   </div>
                 </>
-              ) : (
+              ) : activeTab === "theme" ? (
                 <div className="space-y-6">
                   <div className="space-y-3">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Colors</h3>
@@ -374,7 +477,7 @@ View it at: ${window.location.origin}/${docId}`);
                     </div>
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
           </aside>
 
@@ -471,14 +574,20 @@ View it at: ${window.location.origin}/${docId}`);
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-medium">Image URL</label>
-                        <input 
-                          type="text" 
-                          value={selectedBlock.content?.imageUrl || ""} 
-                          onChange={(e) => updateBlockContent(selectedBlock.id, { imageUrl: e.target.value })}
-                          className="w-full text-sm px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
-                          placeholder="https://..."
-                        />
+                        <label className="text-xs font-medium">Image URL or Upload</label>
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            value={selectedBlock.content?.imageUrl || ""} 
+                            onChange={(e) => updateBlockContent(selectedBlock.id, { imageUrl: e.target.value })}
+                            className="flex-1 text-sm px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
+                            placeholder="https://..."
+                          />
+                          <label className="cursor-pointer bg-secondary px-3 py-2 rounded-md flex items-center justify-center hover:bg-secondary/80">
+                            {uploadingState[`${selectedBlock.id}-imageUrl-0`] ? <span className="text-[10px]">...</span> : <ImageIcon className="w-4 h-4" />}
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, selectedBlock.id, 'imageUrl')} />
+                          </label>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -493,6 +602,22 @@ View it at: ${window.location.origin}/${docId}`);
                           onChange={(e) => updateBlockContent(selectedBlock.id, { title: e.target.value })}
                           className="w-full text-sm px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
                         />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium">Logo URL or Upload</label>
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            value={selectedBlock.content?.logoUrl || ""} 
+                            onChange={(e) => updateBlockContent(selectedBlock.id, { logoUrl: e.target.value })}
+                            className="flex-1 text-sm px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
+                            placeholder="https://..."
+                          />
+                          <label className="cursor-pointer bg-secondary px-3 py-2 rounded-md flex items-center justify-center hover:bg-secondary/80">
+                            {uploadingState[`${selectedBlock.id}-logoUrl-0`] ? <span className="text-[10px]">...</span> : <ImageIcon className="w-4 h-4" />}
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, selectedBlock.id, 'logoUrl')} />
+                          </label>
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <label className="text-xs font-medium">Company</label>
@@ -525,21 +650,27 @@ View it at: ${window.location.origin}/${docId}`);
 
                   {selectedBlock.type === "gallery" && (
                     <div className="space-y-4">
-                      <h4 className="text-xs font-medium">Image URLs</h4>
+                      <h4 className="text-xs font-medium">Image URLs or Uploads</h4>
                       {(selectedBlock.content?.images || ["", "", ""]).map((url: string, index: number) => (
                         <div key={index} className="space-y-1">
                           <label className="text-[10px] text-muted-foreground uppercase">Image {index + 1}</label>
-                          <input 
-                            type="text" 
-                            value={url} 
-                            onChange={(e) => {
-                              const newImages = [...(selectedBlock.content?.images || ["", "", ""])];
-                              newImages[index] = e.target.value;
-                              updateBlockContent(selectedBlock.id, { images: newImages });
-                            }}
-                            className="w-full text-sm px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
-                            placeholder="https://..."
-                          />
+                          <div className="flex gap-2">
+                            <input 
+                              type="text" 
+                              value={url} 
+                              onChange={(e) => {
+                                const newImages = [...(selectedBlock.content?.images || ["", "", ""])];
+                                newImages[index] = e.target.value;
+                                updateBlockContent(selectedBlock.id, { images: newImages });
+                              }}
+                              className="flex-1 text-sm px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
+                              placeholder="https://..."
+                            />
+                            <label className="cursor-pointer bg-secondary px-3 py-2 rounded-md flex items-center justify-center hover:bg-secondary/80">
+                              {uploadingState[`${selectedBlock.id}-images-${index}`] ? <span className="text-[10px]">...</span> : <ImageIcon className="w-4 h-4" />}
+                              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, selectedBlock.id, 'images', index)} />
+                            </label>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -647,6 +778,80 @@ View it at: ${window.location.origin}/${docId}`);
                             newLinks.splice(index, 1);
                             updateBlockContent(selectedBlock.id, { links: newLinks });
                           }} className="text-[10px] text-destructive">X</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedBlock.type === "contact" && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium">Title</label>
+                        <input 
+                          type="text" 
+                          value={selectedBlock.content?.title || ""} 
+                          onChange={(e) => updateBlockContent(selectedBlock.id, { title: e.target.value })}
+                          className="w-full text-sm px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium">Description</label>
+                        <input 
+                          type="text" 
+                          value={selectedBlock.content?.description || ""} 
+                          onChange={(e) => updateBlockContent(selectedBlock.id, { description: e.target.value })}
+                          className="w-full text-sm px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedBlock.type === "testimonials" && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-medium">Testimonials</h4>
+                        <button 
+                          onClick={() => {
+                            const newItems = [...(selectedBlock.content?.items || []), { name: "", role: "", text: "" }];
+                            updateBlockContent(selectedBlock.id, { items: newItems });
+                          }}
+                          className="text-[10px] bg-secondary px-2 py-1 rounded"
+                        >+ Add</button>
+                      </div>
+                      {(selectedBlock.content?.items || []).map((item: any, index: number) => (
+                        <div key={index} className="p-3 border border-border rounded-md space-y-2 bg-secondary/20">
+                          <input 
+                            type="text" placeholder="Name" value={item.name}
+                            onChange={(e) => {
+                               const newItems = [...selectedBlock.content.items];
+                               newItems[index].name = e.target.value;
+                               updateBlockContent(selectedBlock.id, { items: newItems });
+                            }}
+                            className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
+                          />
+                          <input 
+                            type="text" placeholder="Role" value={item.role}
+                            onChange={(e) => {
+                               const newItems = [...selectedBlock.content.items];
+                               newItems[index].role = e.target.value;
+                               updateBlockContent(selectedBlock.id, { items: newItems });
+                            }}
+                            className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
+                          />
+                          <textarea 
+                            placeholder="Quote text" value={item.text}
+                            onChange={(e) => {
+                               const newItems = [...selectedBlock.content.items];
+                               newItems[index].text = e.target.value;
+                               updateBlockContent(selectedBlock.id, { items: newItems });
+                            }}
+                            className="w-full text-xs px-2 py-1 bg-background border border-border rounded resize-none min-h-[60px]"
+                          />
+                          <button onClick={() => {
+                             const newItems = [...selectedBlock.content.items];
+                             newItems.splice(index, 1);
+                             updateBlockContent(selectedBlock.id, { items: newItems });
+                          }} className="text-[10px] text-destructive">Remove</button>
                         </div>
                       ))}
                     </div>
