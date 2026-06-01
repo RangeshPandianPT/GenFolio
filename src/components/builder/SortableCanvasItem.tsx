@@ -2,7 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Trash2, Briefcase, ExternalLink, Image as ImageIcon, Sparkles } from "lucide-react";
+import { GripVertical, Trash2, Briefcase, ExternalLink, Image as ImageIcon, Sparkles, Mail, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface SortableCanvasItemProps {
@@ -134,6 +134,37 @@ export function SortableCanvasItem({ id, type, content = {}, isSelected = false,
               <a key={i} href={link.url} className="px-6 py-3 bg-foreground text-background font-medium rounded-full hover:bg-foreground/90 transition-all hover:scale-105 active:scale-95" target="_blank" rel="noreferrer">
                 {link.platform}
               </a>
+            ))}
+          </motion.div>
+        );
+      case "contact":
+        return (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-xl mx-auto p-8 bg-card border border-border/50 rounded-2xl shadow-sm text-center">
+            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Mail className="w-6 h-6 text-primary" />
+            </div>
+            <h3 className="text-2xl font-bold">{content.title || "Get in touch"}</h3>
+            <p className="text-muted-foreground mt-2 mb-6">{content.description || "Drop me a message!"}</p>
+            <div className="space-y-4 text-left pointer-events-none opacity-70">
+              <input type="text" placeholder="Your Name" disabled className="w-full px-4 py-3 bg-background border border-border rounded-xl" />
+              <input type="email" placeholder="Your Email" disabled className="w-full px-4 py-3 bg-background border border-border rounded-xl" />
+              <textarea placeholder="Your Message" disabled rows={4} className="w-full px-4 py-3 bg-background border border-border rounded-xl resize-none" />
+              <button disabled className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-xl">Send Message</button>
+            </div>
+          </motion.div>
+        );
+      case "testimonials":
+        return (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {(content.items || [{ name: "Client Name", role: "CEO", text: "Amazing work! Highly recommended." }]).map((t: any, i: number) => (
+              <div key={i} className="p-8 bg-gradient-to-br from-card to-secondary/10 border border-border/50 rounded-2xl shadow-sm relative">
+                <MessageSquare className="w-8 h-8 text-primary/20 absolute top-6 right-6" />
+                <p className="text-lg italic text-muted-foreground mb-6">"{t.text}"</p>
+                <div>
+                  <h4 className="font-bold">{t.name}</h4>
+                  <p className="text-sm text-primary font-medium">{t.role}</p>
+                </div>
+              </div>
             ))}
           </motion.div>
         );
