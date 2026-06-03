@@ -1,5 +1,5 @@
 import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
+import { doc, getDoc, updateDoc, increment, collection, query, where, getDocs } from "firebase/firestore";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PortfolioViewer } from "@/components/portfolio/PortfolioViewer";
@@ -10,14 +10,26 @@ export async function generateMetadata(props: { params: Promise<{ id: string }> 
   const params = await props.params;
   const { id } = params;
   try {
-    const docRef = doc(db, "portfolios", id);
-    const docSnap = await getDoc(docRef);
+    let docRef = doc(db, "portfolios", id);
+    let docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) {
+      const q = query(collection(db, "portfolios"), where("username", "==", id));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        docSnap = querySnapshot.docs[0];
+      }
+    }
+
     if (docSnap.exists()) {
       const data = docSnap.data();
       const seo = data.seo || {};
       return {
         title: seo.title || "Portfolio",
         description: seo.description || "Created with GenFolio",
+        openGraph: seo.ogImage ? {
+          images: [{ url: seo.ogImage }],
+        } : undefined,
       };
     }
   } catch(e) {}
@@ -32,12 +44,26 @@ export default async function PublishedPortfolio(props: { params: Promise<{ id: 
   let portfolioData = null;
 
   try {
-    const docRef = doc(db, "portfolios", id);
-    const docSnap = await getDoc(docRef);
+    let docRef = doc(db, "portfolios", id);
+    let docSnap = await getDoc(docRef);
 
+    if (!docSnap.exists()) {
+      const q = query(collection(db, "portfolios"), where("username", "==", id));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        docSnap = querySnapshot.docs[0];
+        docRef = docSnap.ref;
+      }
+    }
 
     if (docSnap.exists()) {
-  const portfolioData = docSnap.data();
+      portfolioData = docSnap.data();
+      
+      // If it has the new isPublished flag and it's false, return 404
+      if (portfolioData.isPublished === false) {
+        notFound();
+      }
+
       // Increment view count server-side
       try {
         const today = new Date().toISOString().split('T')[0];
@@ -47,7 +73,6 @@ export default async function PublishedPortfolio(props: { params: Promise<{ id: 
         });
       } catch(e) { console.error("Error updating views", e); }
     } else {
-
       notFound();
     }
   } catch (error) {
