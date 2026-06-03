@@ -87,7 +87,9 @@ export default function Builder() {
   const [themeRadius, setThemeRadius] = useState('0.5rem');
   const [themeFont, setThemeFont] = useState('font-sans');
   const [themeMode, setThemeMode] = useState('light');
-  const [seoConfig, setSeoConfig] = useState({ title: "My Portfolio", description: "" });
+  const [seoConfig, setSeoConfig] = useState({ title: "My Portfolio", description: "", ogImage: "" });
+  const [username, setUsername] = useState("");
+  const [isPublished, setIsPublished] = useState(false);
   const [portfolioId, setPortfolioId] = useState<string | null>(null);
 
   const [isPreview, setIsPreview] = useState(false);
@@ -152,7 +154,9 @@ export default function Builder() {
           setThemeRadius(data.themeRadius || '0.5rem');
           setThemeFont(data.themeFont || 'font-sans');
           setThemeMode(data.themeMode || 'light');
-          setSeoConfig(data.seo || { title: "My Portfolio", description: "" });
+          setSeoConfig(data.seo || { title: "My Portfolio", description: "", ogImage: "" });
+          setUsername(data.username || "");
+          setIsPublished(data.isPublished || false);
         }
       };
       fetchPortfolio();
@@ -253,7 +257,7 @@ export default function Builder() {
     }
   };
 
-  const savePortfolio = async () => {
+  const savePortfolio = async (publish: boolean) => {
     setIsSaving(true);
     try {
       if (!userId) {
@@ -264,6 +268,8 @@ export default function Builder() {
       
       const portfolioData = {
         userId,
+        username: username.toLowerCase().replace(/[^a-z0-9-]/g, ''),
+        isPublished: publish,
         themeColor,
         themeRadius,
         themeFont,
@@ -281,11 +287,12 @@ export default function Builder() {
         docId = docRef.id;
         setPortfolioId(docId);
       }
-      alert(`Portfolio published successfully!
-View it at: ${window.location.origin}/${docId}`);
+      
+      setIsPublished(publish);
+      alert(publish ? `Portfolio published successfully!\nView it at: ${window.location.origin}/${portfolioData.username || docId}` : "Draft saved successfully!");
     } catch (error) {
       console.error("Error saving portfolio: ", error);
-      alert("Failed to publish portfolio.");
+      alert("Failed to save portfolio.");
     } finally {
       setIsSaving(false);
     }
@@ -314,7 +321,10 @@ View it at: ${window.location.origin}/${docId}`);
       >
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-background/80 backdrop-blur-md p-2 rounded-full border border-border shadow-lg">
           <button onClick={() => setIsPreview(false)} className="px-4 py-2 bg-secondary text-secondary-foreground rounded-full text-sm font-medium hover:bg-secondary/80">Back to Builder</button>
-          <button onClick={savePortfolio} disabled={isSaving} className="px-4 py-2 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2">
+          <button onClick={() => savePortfolio(false)} disabled={isSaving} className="px-4 py-2 bg-secondary text-secondary-foreground rounded-full text-sm font-medium hover:bg-secondary/80 disabled:opacity-50">
+            Save Draft
+          </button>
+          <button onClick={() => savePortfolio(true)} disabled={isSaving} className="px-4 py-2 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2">
             <Save className="w-4 h-4" />
             {isSaving ? "Publishing..." : "Publish"}
           </button>
@@ -352,7 +362,10 @@ View it at: ${window.location.origin}/${docId}`);
             <button onClick={() => setIsPreview(true)} className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md text-sm font-medium hover:bg-secondary/80 flex items-center gap-2 transition-colors">
               <Eye className="w-4 h-4" /> Preview
             </button>
-            <button onClick={savePortfolio} disabled={isSaving} className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 flex items-center gap-2 disabled:opacity-50 transition-colors">
+            <button onClick={() => savePortfolio(false)} disabled={isSaving} className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50">
+              Save Draft
+            </button>
+            <button onClick={() => savePortfolio(true)} disabled={isSaving} className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 flex items-center gap-2 disabled:opacity-50 transition-colors">
               <Save className="w-4 h-4" /> {isSaving ? "Saving..." : "Publish"}
             </button>
           </div>
@@ -457,6 +470,29 @@ View it at: ${window.location.origin}/${docId}`);
               ) : activeTab === "settings" ? (
                 <div className="space-y-6">
                   <div className="space-y-4">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Publishing</h3>
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium flex justify-between">
+                        Custom Username (URL)
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isPublished ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500'}`}>
+                          {isPublished ? 'Published' : 'Draft'}
+                        </span>
+                      </label>
+                      <div className="flex text-sm bg-background border border-border rounded-md overflow-hidden">
+                        <span className="bg-secondary px-2 py-2 text-muted-foreground border-r border-border">genfolio.com/</span>
+                        <input 
+                          type="text" 
+                          value={username} 
+                          onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                          placeholder="your-name"
+                          className="w-full px-2 py-2 bg-transparent focus:outline-none"
+                        />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">Letters, numbers, and hyphens only.</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">SEO Settings</h3>
                     <div className="space-y-2">
                       <label className="text-xs font-medium">Page Title</label>
@@ -474,6 +510,19 @@ View it at: ${window.location.origin}/${docId}`);
                         onChange={(e) => setSeoConfig({...seoConfig, description: e.target.value})}
                         className="w-full text-sm px-3 py-2 bg-background border border-border rounded-md min-h-[80px]"
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium">OpenGraph Image URL</label>
+                      <div className="flex gap-2">
+                        <input 
+                          type="text" 
+                          value={seoConfig.ogImage || ""} 
+                          onChange={(e) => setSeoConfig({...seoConfig, ogImage: e.target.value})}
+                          placeholder="https://..."
+                          className="flex-1 text-sm px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">Image shown when sharing on social media.</p>
                     </div>
                   </div>
                 </div>
