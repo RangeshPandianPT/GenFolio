@@ -3,9 +3,9 @@
 import { useEffect, useState, useMemo } from "react";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, query, where, getDocs, deleteDoc, doc, addDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, deleteDoc, doc, addDoc, updateDoc } from "firebase/firestore";
 import Link from "next/link";
-import { LayoutDashboard, Plus, Edit2, Trash2, ExternalLink, Eye, LogOut, Copy, BarChart2 } from "lucide-react";
+import { LayoutDashboard, Plus, Edit2, Trash2, ExternalLink, Eye, LogOut, Copy, BarChart2, Mail, MessageSquare, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -14,6 +14,8 @@ type PortfolioMeta = {
   seo?: { title: string; description: string };
   updatedAt: string;
   views?: number;
+  username?: string;
+  isPublished?: boolean;
   [key: string]: any;
 };
 
@@ -21,6 +23,8 @@ export default function Dashboard() {
   const [portfolios, setPortfolios] = useState<PortfolioMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<"portfolios" | "messages">("portfolios");
+  const [messages, setMessages] = useState<any[]>([]);
   const router = useRouter();
 
   const chartData = useMemo(() => {
@@ -46,7 +50,10 @@ export default function Dashboard() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUser(user);
-        await fetchPortfolios(user.uid);
+        await Promise.all([
+          fetchPortfolios(user.uid),
+          fetchMessages(user.uid)
+        ]);
       } else {
         setUser(null);
         setLoading(false);
@@ -71,6 +78,40 @@ export default function Dashboard() {
       console.error("Error fetching portfolios", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMessages = async (userId: string) => {
+    try {
+      const q = query(collection(db, "messages"), where("ownerId", "==", userId));
+      const querySnapshot = await getDocs(q);
+      const data: any[] = [];
+      querySnapshot.forEach((doc) => {
+        data.push({ id: doc.id, ...doc.data() });
+      });
+      data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setMessages(data);
+    } catch (error) {
+      console.error("Error fetching messages", error);
+    }
+  };
+
+  const markMessageRead = async (id: string) => {
+    try {
+      await updateDoc(doc(db, "messages", id), { read: true });
+      setMessages(messages.map(m => m.id === id ? { ...m, read: true } : m));
+    } catch (error) {
+      console.error("Error marking read", error);
+    }
+  };
+
+  const deleteMessage = async (id: string) => {
+    if (!confirm("Delete this message?")) return;
+    try {
+      await deleteDoc(doc(db, "messages", id));
+      setMessages(messages.filter(m => m.id !== id));
+    } catch (error) {
+      console.error("Error deleting message", error);
     }
   };
 
@@ -137,19 +178,85 @@ export default function Dashboard() {
       <main className="max-w-6xl mx-auto py-12 px-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Your Portfolios</h1>
-            <p className="text-muted-foreground mt-1">Manage and edit your published sites.</p>
+            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <div className="flex gap-4 mt-4 border-b border-border">
+              <button 
+                onClick={() => setActiveTab("portfolios")}
+                className={`pb-2 px-1 font-medium transition-colors ${activeTab === "portfolios" ? "border-b-2 border-primary text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Portfolios
+              </button>
+              <button 
+                onClick={() => setActiveTab("messages")}
+                className={`pb-2 px-1 font-medium transition-colors flex items-center gap-2 ${activeTab === "messages" ? "border-b-2 border-primary text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Messages
+                {messages.filter(m => !m.read).length > 0 && (
+                  <span className="bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full">
+                    {messages.filter(m => !m.read).length}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
-          <Link 
-            href="/builder" 
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Create New
-          </Link>
+          {activeTab === "portfolios" && (
+            <Link 
+              href="/builder" 
+              className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Create New
+            </Link>
+          )}
         </div>
 
-        {portfolios.length > 0 && (
+        {activeTab === "messages" && (
+          <div className="space-y-4">
+            {messages.length === 0 ? (
+              <div className="bg-card border border-border rounded-xl p-12 text-center flex flex-col items-center">
+                <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mb-4">
+                  <Mail className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h2 className="text-xl font-semibold mb-2">No messages yet</h2>
+                <p className="text-muted-foreground">When visitors contact you through your portfolio, their messages will appear here.</p>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {messages.map(msg => (
+                  <div key={msg.id} className={`bg-card border ${msg.read ? 'border-border' : 'border-primary/50'} rounded-xl p-6 shadow-sm flex flex-col md:flex-row gap-6 relative`}>
+                    {!msg.read && <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-primary" />}
+                    <div className="md:w-1/3 shrink-0 border-r border-border pr-6">
+                      <div className="font-semibold text-lg">{msg.name}</div>
+                      <a href={`mailto:${msg.email}`} className="text-sm text-primary hover:underline">{msg.email}</a>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        {new Date(msg.createdAt).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="flex-1 space-y-4">
+                      <div className="bg-secondary/30 p-4 rounded-lg text-sm whitespace-pre-wrap">
+                        {msg.message}
+                      </div>
+                      <div className="flex gap-2 justify-end mt-4">
+                        {!msg.read && (
+                          <button onClick={() => markMessageRead(msg.id)} className="text-xs bg-secondary text-secondary-foreground px-3 py-1.5 rounded-md hover:bg-secondary/80 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> Mark Read
+                          </button>
+                        )}
+                        <button onClick={() => deleteMessage(msg.id)} className="text-xs bg-destructive/10 text-destructive px-3 py-1.5 rounded-md hover:bg-destructive/20 flex items-center gap-1">
+                          <Trash2 className="w-3 h-3" /> Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "portfolios" && (
+          <>
+            {portfolios.length > 0 && (
           <div className="mb-12">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <BarChart2 className="w-5 h-5 text-primary" />
@@ -242,6 +349,8 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
+        )}
+          </>
         )}
       </main>
     </div>

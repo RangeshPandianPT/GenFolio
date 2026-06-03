@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { Briefcase, ExternalLink, Image as ImageIcon, Sparkles, Mail, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { db } from "@/lib/firebase";
+import { collection, addDoc } from "firebase/firestore";
 
 interface PortfolioViewerProps {
   portfolioData: any;
@@ -22,18 +24,38 @@ export function PortfolioViewer({ portfolioData }: PortfolioViewerProps) {
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+    show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 100 } }
   };
 
   const [formStatus, setFormStatus] = useState<"idle" | "sending" | "sent">("idle");
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const handleContactSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFormStatus("sending");
-    // Simulate sending
-    setTimeout(() => {
+    
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get("name") as string;
+    const email = formData.get("email") as string;
+    const message = formData.get("message") as string;
+
+    try {
+      if (portfolioData.id && portfolioData.userId) {
+        await addDoc(collection(db, "messages"), {
+          portfolioId: portfolioData.id,
+          ownerId: portfolioData.userId,
+          name,
+          email,
+          message,
+          createdAt: new Date().toISOString(),
+          read: false
+        });
+      }
       setFormStatus("sent");
-    }, 1500);
+    } catch (error) {
+      console.error("Error sending message:", error);
+      setFormStatus("idle");
+      alert("Failed to send message.");
+    }
   };
 
   return (
@@ -168,9 +190,9 @@ export function PortfolioViewer({ portfolioData }: PortfolioViewerProps) {
                   </div>
                 ) : (
                   <form onSubmit={handleContactSubmit} className="space-y-4">
-                    <input type="text" placeholder="Your Name" required className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:ring-2 focus:ring-primary focus:outline-none transition-all" />
-                    <input type="email" placeholder="Your Email" required className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:ring-2 focus:ring-primary focus:outline-none transition-all" />
-                    <textarea placeholder="Your Message" required rows={4} className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:ring-2 focus:ring-primary focus:outline-none transition-all resize-none" />
+                    <input type="text" name="name" placeholder="Your Name" required className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:ring-2 focus:ring-primary focus:outline-none transition-all" />
+                    <input type="email" name="email" placeholder="Your Email" required className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:ring-2 focus:ring-primary focus:outline-none transition-all" />
+                    <textarea name="message" placeholder="Your Message" required rows={4} className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:ring-2 focus:ring-primary focus:outline-none transition-all resize-none" />
                     <button type="submit" disabled={formStatus === "sending"} className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all shadow-md disabled:opacity-70">
                       {formStatus === "sending" ? "Sending..." : "Send Message"}
                     </button>
