@@ -36,3 +36,9 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
 ## Features Updated
+- **Custom URLs, Drafts, OpenGraph SEO**: Added robust support for live portfolios.
+- **Messages Inbox**: Dedicated dashboard for contacting users directly.
+- **Firebase Storage Integration**: Native image uploads seamlessly.
+- **Advanced Analytics Dashboard**: Integrated with Recharts for performance insights.
+- **AI Theme Generator**: One-click generation of fully cohesive color palettes, typography, and border radiuses via Gemini.
+- **GitHub Integrations**: Auto-display top repositories, fork counts, and stars directly within the canvas.
