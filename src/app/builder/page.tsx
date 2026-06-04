@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Layout, Type, Image as ImageIcon, Briefcase, User, Settings, Save, Eye, ChevronLeft, Link as LinkIcon, Code, Hash, LayoutDashboard, Mail, MessageSquare } from "lucide-react";
+import { Layout, Type, Image as ImageIcon, Briefcase, User, Settings, Save, Eye, ChevronLeft, Link as LinkIcon, Code, Hash, LayoutDashboard, Mail, MessageSquare, Sparkles, Github } from "lucide-react";
 import Link from "next/link";
 import {
   DndContext,
@@ -46,6 +46,7 @@ const getDefaultContent = (type: string) => {
     case "social": return { links: [{ platform: "GitHub", url: "" }, { platform: "LinkedIn", url: "" }] };
     case "contact": return { title: "Get in touch", description: "Drop me a message!" };
     case "testimonials": return { items: [{ name: "Client Name", role: "CEO", text: "Amazing work! Highly recommended." }] };
+    case "github": return { username: "octocat", repos: [{name: "Hello-World", desc: "My first repository", stars: 12, forks: 4}] };
     default: return {};
   }
 };
@@ -82,6 +83,8 @@ export default function Builder() {
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [isGeneratingBio, setIsGeneratingBio] = useState(false);
+  const [isGeneratingTheme, setIsGeneratingTheme] = useState(false);
+  const [themePrompt, setThemePrompt] = useState("");
   
   const [themeColor, setThemeColor] = useState('#6366f1');
   const [themeRadius, setThemeRadius] = useState('0.5rem');
@@ -257,6 +260,29 @@ export default function Builder() {
     }
   };
 
+  const generateTheme = async () => {
+    if (!themePrompt) return;
+    setIsGeneratingTheme(true);
+    try {
+      const res = await fetch("/api/generate-theme", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: themePrompt }),
+      });
+      if (!res.ok) throw new Error("Failed to generate theme");
+      const data = await res.json();
+      if (data.themeColor) setThemeColor(data.themeColor);
+      if (data.themeRadius) setThemeRadius(data.themeRadius);
+      if (data.themeFont) setThemeFont(data.themeFont);
+      if (data.themeMode) setThemeMode(data.themeMode);
+    } catch (error) {
+      console.error("Theme generation error:", error);
+      alert("Failed to generate AI theme.");
+    } finally {
+      setIsGeneratingTheme(false);
+    }
+  };
+
   const savePortfolio = async (publish: boolean) => {
     setIsSaving(true);
     try {
@@ -414,6 +440,7 @@ export default function Builder() {
                       <DraggableSidebarItem id="sidebar-gallery" type="gallery" label="Gallery" icon={ImageIcon} />
                       <DraggableSidebarItem id="sidebar-projects" type="projects" label="Projects" icon={Code} />
                       <DraggableSidebarItem id="sidebar-skills" type="skills" label="Skills" icon={Hash} />
+                      <DraggableSidebarItem id="sidebar-github" type="github" label="GitHub" icon={Github} />
                       <DraggableSidebarItem id="sidebar-social" type="social" label="Social Links" icon={LinkIcon} />
                       <DraggableSidebarItem id="sidebar-testimonials" type="testimonials" label="Testimonials" icon={MessageSquare} />
                       <DraggableSidebarItem id="sidebar-contact" type="contact" label="Contact Form" icon={Mail} />
@@ -422,6 +449,28 @@ export default function Builder() {
                 </>
               ) : activeTab === "theme" ? (
                 <div className="space-y-6">
+                  <div className="space-y-3 p-4 bg-gradient-to-br from-primary/10 to-indigo-500/10 rounded-xl border border-primary/20">
+                    <h3 className="text-xs font-bold text-primary flex items-center gap-2 uppercase tracking-wider mb-2">
+                      <Sparkles className="w-3 h-3" /> AI Theme Gen
+                    </h3>
+                    <div className="space-y-2">
+                      <input 
+                        type="text" 
+                        placeholder="e.g. Dark Cyberpunk..."
+                        value={themePrompt}
+                        onChange={(e) => setThemePrompt(e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:border-primary"
+                      />
+                      <button 
+                        onClick={generateTheme}
+                        disabled={isGeneratingTheme || !themePrompt}
+                        className="w-full py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-md hover:bg-primary/90 disabled:opacity-50 transition-all"
+                      >
+                        {isGeneratingTheme ? "Generating..." : "Generate Theme"}
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="space-y-3">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Colors</h3>
                     <div className="grid grid-cols-5 gap-2">
@@ -770,6 +819,77 @@ export default function Builder() {
                             const newItems = [...selectedBlock.content.items];
                             newItems.splice(index, 1);
                             updateBlockContent(selectedBlock.id, { items: newItems });
+                          }} className="text-[10px] text-destructive">Remove</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedBlock.type === "github" && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium">GitHub Username</label>
+                        <input 
+                          type="text" 
+                          value={selectedBlock.content?.username || ""} 
+                          onChange={(e) => updateBlockContent(selectedBlock.id, { username: e.target.value })}
+                          className="w-full text-sm px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-medium">Repositories</h4>
+                        <button 
+                          onClick={() => {
+                            const newRepos = [...(selectedBlock.content?.repos || []), { name: "", desc: "", stars: 0, forks: 0 }];
+                            updateBlockContent(selectedBlock.id, { repos: newRepos });
+                          }}
+                          className="text-[10px] bg-secondary px-2 py-1 rounded"
+                        >+ Add</button>
+                      </div>
+                      {(selectedBlock.content?.repos || []).map((repo: any, index: number) => (
+                        <div key={index} className="p-3 border border-border rounded-md space-y-2 bg-secondary/20">
+                          <input 
+                            type="text" placeholder="Repo Name" value={repo.name}
+                            onChange={(e) => {
+                              const newRepos = [...selectedBlock.content.repos];
+                              newRepos[index].name = e.target.value;
+                              updateBlockContent(selectedBlock.id, { repos: newRepos });
+                            }}
+                            className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
+                          />
+                          <input 
+                            type="text" placeholder="Description" value={repo.desc}
+                            onChange={(e) => {
+                              const newRepos = [...selectedBlock.content.repos];
+                              newRepos[index].desc = e.target.value;
+                              updateBlockContent(selectedBlock.id, { repos: newRepos });
+                            }}
+                            className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
+                          />
+                          <div className="flex gap-2">
+                            <input 
+                              type="number" placeholder="Stars" value={repo.stars}
+                              onChange={(e) => {
+                                const newRepos = [...selectedBlock.content.repos];
+                                newRepos[index].stars = parseInt(e.target.value) || 0;
+                                updateBlockContent(selectedBlock.id, { repos: newRepos });
+                              }}
+                              className="w-1/2 text-xs px-2 py-1 bg-background border border-border rounded"
+                            />
+                            <input 
+                              type="number" placeholder="Forks" value={repo.forks}
+                              onChange={(e) => {
+                                const newRepos = [...selectedBlock.content.repos];
+                                newRepos[index].forks = parseInt(e.target.value) || 0;
+                                updateBlockContent(selectedBlock.id, { repos: newRepos });
+                              }}
+                              className="w-1/2 text-xs px-2 py-1 bg-background border border-border rounded"
+                            />
+                          </div>
+                          <button onClick={() => {
+                            const newRepos = [...selectedBlock.content.repos];
+                            newRepos.splice(index, 1);
+                            updateBlockContent(selectedBlock.id, { repos: newRepos });
                           }} className="text-[10px] text-destructive">Remove</button>
                         </div>
                       ))}
