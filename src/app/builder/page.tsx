@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Layout, Type, Image as ImageIcon, Briefcase, User, Settings, Save, Eye, ChevronLeft, Link as LinkIcon, Code, Hash, LayoutDashboard, Mail, MessageSquare, Sparkles, Github } from "lucide-react";
+import { Layout, Type, Image as ImageIcon, Briefcase, User, Settings, Save, Eye, ChevronLeft, Link as LinkIcon, Code, Hash, LayoutDashboard, Mail, MessageSquare, Sparkles, Github, Twitter, Music, Monitor, Smartphone, Tablet, LayoutTemplate, FileText } from "lucide-react";
 import Link from "next/link";
 import {
   DndContext,
@@ -47,6 +47,10 @@ const getDefaultContent = (type: string) => {
     case "contact": return { title: "Get in touch", description: "Drop me a message!" };
     case "testimonials": return { items: [{ name: "Client Name", role: "CEO", text: "Amazing work! Highly recommended." }] };
     case "github": return { username: "octocat", repos: [{name: "Hello-World", desc: "My first repository", stars: 12, forks: 4}] };
+    case "github": return { username: "octocat", repos: [{name: "Hello-World", desc: "My first repository", stars: 12, forks: 4}] };
+    case "twitter": return { username: "yourusername", tweetUrl: "" };
+    case "spotify": return { embedUrl: "" };
+    case "blog": return { title: "My Thoughts", posts: [{ title: "First Post", date: "Today", content: "Markdown content here..." }] };
     default: return {};
   }
 };
@@ -77,6 +81,40 @@ const THEMES = [
   { id: 'amber', color: '#f59e0b', bgClass: 'bg-amber-500' },
 ];
 
+const PORTFOLIO_TEMPLATES = [
+  {
+    id: "minimal",
+    name: "Minimalist Light",
+    theme: { color: "#171717", radius: "0", font: "font-sans", mode: "light" },
+    blocks: [
+      { id: "head-min", type: "heading", content: { text: "Hi, I'm Alex." } },
+      { id: "bio-min", type: "bio", content: { name: "Product Designer", description: "I build simple and elegant digital experiences." } },
+      { id: "proj-min", type: "projects", content: { items: [{ name: "Project Alpha", desc: "Minimal design system", link: "#" }] } }
+    ]
+  },
+  {
+    id: "cyberpunk",
+    name: "Cyberpunk Hacker",
+    theme: { color: "#22c55e", radius: "0", font: "font-mono", mode: "dark" },
+    blocks: [
+      { id: "head-cyb", type: "heading", content: { text: "> system.init()" } },
+      { id: "bio-cyb", type: "bio", content: { name: "Full Stack Dev", description: "Hacking the mainframe since 1999." } },
+      { id: "git-cyb", type: "github", content: { username: "hackerman", repos: [{name: "neural-net", desc: "AI stuff", stars: 999, forks: 42}] } },
+      { id: "skills-cyb", type: "skills", content: { skills: ["Rust", "Go", "C++", "Assembly"] } }
+    ]
+  },
+  {
+    id: "modern",
+    name: "Modern Professional",
+    theme: { color: "#3b82f6", radius: "0.5rem", font: "font-sans", mode: "light" },
+    blocks: [
+      { id: "bio-mod", type: "bio", content: { name: "Sarah Jenkins", description: "Senior Marketing Manager with 10+ years of experience driving growth." } },
+      { id: "exp-mod", type: "experience", content: { title: "VP of Marketing", company: "TechCorp", period: "2018 - Present", description: "Led a team of 50+ marketers." } },
+      { id: "test-mod", type: "testimonials", content: { items: [{ name: "John Doe", role: "CEO", text: "Sarah is a visionary leader." }] } }
+    ]
+  }
+];
+
 export default function Builder() {
   const [activeTab, setActiveTab] = useState("blocks");
   const [blocks, setBlocks] = useState<Block[]>([]);
@@ -96,6 +134,7 @@ export default function Builder() {
   const [portfolioId, setPortfolioId] = useState<string | null>(null);
 
   const [isPreview, setIsPreview] = useState(false);
+  const [previewDevice, setPreviewDevice] = useState<'desktop'|'tablet'|'mobile'>('desktop');
   const [isSaving, setIsSaving] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [uploadingState, setUploadingState] = useState<{[key: string]: boolean}>({});
@@ -347,6 +386,13 @@ export default function Builder() {
       >
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-background/80 backdrop-blur-md p-2 rounded-full border border-border shadow-lg">
           <button onClick={() => setIsPreview(false)} className="px-4 py-2 bg-secondary text-secondary-foreground rounded-full text-sm font-medium hover:bg-secondary/80">Back to Builder</button>
+          
+          <div className="flex items-center bg-secondary rounded-full p-1 border border-border/50">
+            <button onClick={() => setPreviewDevice('desktop')} className={`p-2 rounded-full ${previewDevice === 'desktop' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}><Monitor className="w-4 h-4"/></button>
+            <button onClick={() => setPreviewDevice('tablet')} className={`p-2 rounded-full ${previewDevice === 'tablet' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}><Tablet className="w-4 h-4"/></button>
+            <button onClick={() => setPreviewDevice('mobile')} className={`p-2 rounded-full ${previewDevice === 'mobile' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}><Smartphone className="w-4 h-4"/></button>
+          </div>
+
           <button onClick={() => savePortfolio(false)} disabled={isSaving} className="px-4 py-2 bg-secondary text-secondary-foreground rounded-full text-sm font-medium hover:bg-secondary/80 disabled:opacity-50">
             Save Draft
           </button>
@@ -355,7 +401,9 @@ export default function Builder() {
             {isSaving ? "Publishing..." : "Publish"}
           </button>
         </div>
-        <div className="max-w-5xl mx-auto py-12 px-8 flex flex-col gap-6 pt-24 pointer-events-none">
+        <div className={`mx-auto py-12 px-8 flex flex-col gap-6 pt-24 pointer-events-none transition-all duration-300 ${
+          previewDevice === 'mobile' ? 'max-w-[400px]' : previewDevice === 'tablet' ? 'max-w-[768px]' : 'max-w-5xl'
+        }`}>
           <DndContext>
            <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
               {blocks.map((block) => (
@@ -414,6 +462,12 @@ export default function Builder() {
                 Theme
               </button>
               <button 
+                onClick={() => setActiveTab("templates")}
+                className={`flex-1 text-xs font-medium py-2 rounded-md transition-colors ${activeTab === "templates" ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:bg-secondary/50"}`}
+              >
+                Templates
+              </button>
+              <button 
                 onClick={() => setActiveTab("settings")}
                 className={`flex-1 text-xs font-medium py-2 rounded-md transition-colors ${activeTab === "settings" ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:bg-secondary/50"}`}
               >
@@ -440,7 +494,10 @@ export default function Builder() {
                       <DraggableSidebarItem id="sidebar-gallery" type="gallery" label="Gallery" icon={ImageIcon} />
                       <DraggableSidebarItem id="sidebar-projects" type="projects" label="Projects" icon={Code} />
                       <DraggableSidebarItem id="sidebar-skills" type="skills" label="Skills" icon={Hash} />
+                      <DraggableSidebarItem id="sidebar-blog" type="blog" label="Notes / Blog" icon={FileText} />
                       <DraggableSidebarItem id="sidebar-github" type="github" label="GitHub" icon={Github} />
+                      <DraggableSidebarItem id="sidebar-twitter" type="twitter" label="Twitter/X" icon={Twitter} />
+                      <DraggableSidebarItem id="sidebar-spotify" type="spotify" label="Spotify" icon={Music} />
                       <DraggableSidebarItem id="sidebar-social" type="social" label="Social Links" icon={LinkIcon} />
                       <DraggableSidebarItem id="sidebar-testimonials" type="testimonials" label="Testimonials" icon={MessageSquare} />
                       <DraggableSidebarItem id="sidebar-contact" type="contact" label="Contact Form" icon={Mail} />
@@ -513,6 +570,40 @@ export default function Builder() {
                     <div className="grid grid-cols-2 gap-2">
                       <button onClick={() => setThemeMode('light')} className={`px-2 py-1 text-xs border rounded-md ${themeMode === 'light' ? 'bg-primary text-primary-foreground border-primary' : 'border-border'}`}>Light</button>
                       <button onClick={() => setThemeMode('dark')} className={`px-2 py-1 text-xs border rounded-md ${themeMode === 'dark' ? 'bg-primary text-primary-foreground border-primary' : 'border-border'}`}>Dark</button>
+                    </div>
+                  </div>
+                </div>
+              ) : activeTab === "templates" ? (
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pre-built Layouts</h3>
+                    <div className="grid grid-cols-1 gap-4">
+                      {PORTFOLIO_TEMPLATES.map((tpl) => (
+                        <div 
+                          key={tpl.id} 
+                          onClick={() => {
+                            if (window.confirm("Applying a template will replace your current blocks and theme. Continue?")) {
+                              setBlocks(tpl.blocks);
+                              setThemeColor(tpl.theme.color);
+                              setThemeRadius(tpl.theme.radius);
+                              setThemeFont(tpl.theme.font);
+                              setThemeMode(tpl.theme.mode);
+                            }
+                          }}
+                          className="p-4 border border-border rounded-xl cursor-pointer hover:border-primary transition-all group relative overflow-hidden"
+                        >
+                          <div className={`absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity ${tpl.theme.mode === 'dark' ? 'bg-black' : 'bg-white'}`}></div>
+                          <div className="flex items-center gap-3 relative z-10">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{backgroundColor: tpl.theme.color}}>
+                              <LayoutTemplate className="w-4 h-4 text-white" />
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-bold">{tpl.name}</h4>
+                              <p className="text-[10px] text-muted-foreground">{tpl.blocks.length} blocks • {tpl.theme.mode}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -815,6 +906,67 @@ export default function Builder() {
                             }}
                             className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
                           />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedBlock.type === "twitter" && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium">Username</label>
+                        <input 
+                          type="text" 
+                          value={selectedBlock.content?.username || ""} 
+                          onChange={(e) => updateBlockContent(selectedBlock.id, { username: e.target.value })}
+                          className="w-full text-sm px-3 py-2 bg-background border border-border rounded-md"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium">Tweet URL (Optional Embed)</label>
+                        <input 
+                          type="text" 
+                          value={selectedBlock.content?.tweetUrl || ""} 
+                          onChange={(e) => updateBlockContent(selectedBlock.id, { tweetUrl: e.target.value })}
+                          className="w-full text-sm px-3 py-2 bg-background border border-border rounded-md"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedBlock.type === "spotify" && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium">Spotify Embed URL</label>
+                        <input 
+                          type="text" 
+                          value={selectedBlock.content?.embedUrl || ""} 
+                          onChange={(e) => updateBlockContent(selectedBlock.id, { embedUrl: e.target.value })}
+                          className="w-full text-sm px-3 py-2 bg-background border border-border rounded-md"
+                          placeholder="https://open.spotify.com/embed/..."
+                        />
+                        <p className="text-[10px] text-muted-foreground">Go to Spotify -&gt; Share -&gt; Embed Track/Playlist, and copy the `src` URL.</p>
+                      </div>
+                    </div>
+                  )}
+
+                            type="text" placeholder="Description" value={item.desc}
+                            onChange={(e) => {
+                              const newItems = [...selectedBlock.content.items];
+                              newItems[index].desc = e.target.value;
+                              updateBlockContent(selectedBlock.id, { items: newItems });
+                            }}
+                            className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
+                          />
+                          <input 
+                            type="text" placeholder="Link URL" value={item.link}
+                            onChange={(e) => {
+                              const newItems = [...selectedBlock.content.items];
+                              newItems[index].link = e.target.value;
+                              updateBlockContent(selectedBlock.id, { items: newItems });
+                            }}
+                            className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
+                          />
                           <button onClick={() => {
                             const newItems = [...selectedBlock.content.items];
                             newItems.splice(index, 1);
@@ -947,6 +1099,66 @@ export default function Builder() {
                             newLinks.splice(index, 1);
                             updateBlockContent(selectedBlock.id, { links: newLinks });
                           }} className="text-[10px] text-destructive">X</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedBlock.type === "blog" && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium">Section Title</label>
+                        <input 
+                          type="text" 
+                          value={selectedBlock.content?.title || ""} 
+                          onChange={(e) => updateBlockContent(selectedBlock.id, { title: e.target.value })}
+                          className="w-full text-sm px-3 py-2 bg-background border border-border rounded-md"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-medium">Posts</h4>
+                        <button 
+                          onClick={() => {
+                            const newPosts = [...(selectedBlock.content?.posts || []), { title: "New Post", date: new Date().toLocaleDateString(), content: "" }];
+                            updateBlockContent(selectedBlock.id, { posts: newPosts });
+                          }}
+                          className="text-[10px] bg-secondary px-2 py-1 rounded"
+                        >+ Add Post</button>
+                      </div>
+                      {(selectedBlock.content?.posts || []).map((post: any, index: number) => (
+                        <div key={index} className="p-3 border border-border rounded-md space-y-2 bg-secondary/20">
+                          <input 
+                            type="text" placeholder="Title" value={post.title}
+                            onChange={(e) => {
+                              const newPosts = [...selectedBlock.content.posts];
+                              newPosts[index].title = e.target.value;
+                              updateBlockContent(selectedBlock.id, { posts: newPosts });
+                            }}
+                            className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
+                          />
+                          <input 
+                            type="text" placeholder="Date" value={post.date}
+                            onChange={(e) => {
+                              const newPosts = [...selectedBlock.content.posts];
+                              newPosts[index].date = e.target.value;
+                              updateBlockContent(selectedBlock.id, { posts: newPosts });
+                            }}
+                            className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
+                          />
+                          <textarea 
+                            placeholder="Content (Markdown supported in future)" value={post.content}
+                            onChange={(e) => {
+                              const newPosts = [...selectedBlock.content.posts];
+                              newPosts[index].content = e.target.value;
+                              updateBlockContent(selectedBlock.id, { posts: newPosts });
+                            }}
+                            className="w-full text-xs px-2 py-1 bg-background border border-border rounded resize-none min-h-[60px]"
+                          />
+                          <button onClick={() => {
+                            const newPosts = [...selectedBlock.content.posts];
+                            newPosts.splice(index, 1);
+                            updateBlockContent(selectedBlock.id, { posts: newPosts });
+                          }} className="text-[10px] text-destructive">Remove Post</button>
                         </div>
                       ))}
                     </div>
