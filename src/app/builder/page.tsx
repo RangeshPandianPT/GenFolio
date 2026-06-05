@@ -906,6 +906,11 @@ export default function Builder() {
                             }}
                             className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
                           />
+                          <button onClick={() => {
+                            const newItems = [...selectedBlock.content.items];
+                            newItems.splice(index, 1);
+                            updateBlockContent(selectedBlock.id, { items: newItems });
+                          }} className="text-[10px] text-destructive">Remove</button>
                         </div>
                       ))}
                     </div>
@@ -947,33 +952,6 @@ export default function Builder() {
                         />
                         <p className="text-[10px] text-muted-foreground">Go to Spotify -&gt; Share -&gt; Embed Track/Playlist, and copy the `src` URL.</p>
                       </div>
-                    </div>
-                  )}
-
-                            type="text" placeholder="Description" value={item.desc}
-                            onChange={(e) => {
-                              const newItems = [...selectedBlock.content.items];
-                              newItems[index].desc = e.target.value;
-                              updateBlockContent(selectedBlock.id, { items: newItems });
-                            }}
-                            className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
-                          />
-                          <input 
-                            type="text" placeholder="Link URL" value={item.link}
-                            onChange={(e) => {
-                              const newItems = [...selectedBlock.content.items];
-                              newItems[index].link = e.target.value;
-                              updateBlockContent(selectedBlock.id, { items: newItems });
-                            }}
-                            className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
-                          />
-                          <button onClick={() => {
-                            const newItems = [...selectedBlock.content.items];
-                            newItems.splice(index, 1);
-                            updateBlockContent(selectedBlock.id, { items: newItems });
-                          }} className="text-[10px] text-destructive">Remove</button>
-                        </div>
-                      ))}
                     </div>
                   )}
 
