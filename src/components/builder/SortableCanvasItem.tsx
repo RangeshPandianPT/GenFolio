@@ -2,7 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Trash2, Briefcase, ExternalLink, Image as ImageIcon, Sparkles, Mail, MessageSquare, Github, Star, GitFork } from "lucide-react";
+import { GripVertical, Trash2, Briefcase, ExternalLink, Image as ImageIcon, Sparkles, Mail, MessageSquare, Github, Star, GitFork, Twitter, Music } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface SortableCanvasItemProps {
@@ -189,6 +189,76 @@ export function SortableCanvasItem({ id, type, content = {}, isSelected = false,
                     <span className="flex items-center gap-1"><Star className="w-3 h-3" /> {repo.stars}</span>
                     <span className="flex items-center gap-1"><GitFork className="w-3 h-3" /> {repo.forks}</span>
                   </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        );
+      case "twitter":
+        return (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 bg-card border border-border/50 rounded-2xl shadow-sm relative group overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#1DA1F2]/5 rounded-bl-full pointer-events-none" />
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 bg-[#1DA1F2]/10 rounded-full flex items-center justify-center text-[#1DA1F2]">
+                <Twitter className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">@{content.username || "twitter_user"}</h3>
+                <p className="text-sm text-muted-foreground">Twitter feed</p>
+              </div>
+            </div>
+            {content.tweetUrl ? (
+              <div className="mt-4 p-4 border border-border/50 rounded-xl bg-background text-sm text-muted-foreground flex items-center justify-center h-32">
+                 [Twitter Embed Placeholder]
+              </div>
+            ) : (
+              <div className="mt-4 p-4 border border-border/50 rounded-xl bg-background/50 text-sm">
+                Latest tweets will appear here. Connect your account or add a specific tweet URL.
+              </div>
+            )}
+          </motion.div>
+        );
+      case "spotify":
+        return (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 bg-card border border-border/50 rounded-2xl shadow-sm relative group overflow-hidden">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-[#1DB954]/5 rounded-bl-full pointer-events-none" />
+             {content.embedUrl ? (
+                <iframe 
+                  style={{borderRadius: '12px'}} 
+                  src={content.embedUrl} 
+                  width="100%" 
+                  height="152" 
+                  frameBorder="0" 
+                  allowFullScreen={false} 
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+                  loading="lazy"
+                  className="pointer-events-none"
+                ></iframe>
+             ) : (
+               <div className="flex items-center gap-4">
+                 <div className="w-12 h-12 bg-[#1DB954]/10 rounded-full flex items-center justify-center text-[#1DB954]">
+                   <Music className="w-6 h-6" />
+                 </div>
+                 <div>
+                   <h3 className="font-bold text-lg">Currently Listening To</h3>
+                   <p className="text-sm text-muted-foreground">Add a Spotify embed URL</p>
+                 </div>
+               </div>
+             )}
+          </motion.div>
+        );
+      case "blog":
+        return (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-8 bg-card border border-border/50 rounded-2xl shadow-sm space-y-6">
+            <h3 className="text-2xl font-bold border-b border-border/50 pb-4">{content.title || "Notes"}</h3>
+            <div className="space-y-8">
+              {(content.posts || [{ title: "First Post", date: "Jan 1, 2024", content: "Welcome to my notes." }]).map((post: any, i: number) => (
+                <div key={i} className="space-y-2">
+                  <div className="flex items-baseline justify-between gap-4">
+                    <h4 className="text-xl font-bold text-primary">{post.title}</h4>
+                    <span className="text-xs text-muted-foreground font-medium shrink-0">{post.date}</span>
+                  </div>
+                  <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{post.content}</p>
                 </div>
               ))}
             </div>
