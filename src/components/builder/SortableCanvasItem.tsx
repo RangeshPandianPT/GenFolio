@@ -2,7 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Trash2, Briefcase, ExternalLink, Image as ImageIcon, Sparkles, Mail, MessageSquare, Github, Star, GitFork, Twitter, Music } from "lucide-react";
+import { GripVertical, Trash2, Briefcase, ExternalLink, Image as ImageIcon, Sparkles, Mail, MessageSquare, Github, Star, GitFork, Bird, Music } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface SortableCanvasItemProps {
@@ -200,7 +200,7 @@ export function SortableCanvasItem({ id, type, content = {}, isSelected = false,
             <div className="absolute top-0 right-0 w-32 h-32 bg-[#1DA1F2]/5 rounded-bl-full pointer-events-none" />
             <div className="flex items-center gap-4 mb-4">
               <div className="w-12 h-12 bg-[#1DA1F2]/10 rounded-full flex items-center justify-center text-[#1DA1F2]">
-                <Twitter className="w-6 h-6" />
+                <Bird className="w-6 h-6" />
               </div>
               <div>
                 <h3 className="font-bold text-lg">@{content.username || "twitter_user"}</h3>

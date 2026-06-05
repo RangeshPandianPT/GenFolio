@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Layout, Type, Image as ImageIcon, Briefcase, User, Settings, Save, Eye, ChevronLeft, Link as LinkIcon, Code, Hash, LayoutDashboard, Mail, MessageSquare, Sparkles, Github, Twitter, Music, Monitor, Smartphone, Tablet, LayoutTemplate, FileText } from "lucide-react";
+import { Layout, Type, Image as ImageIcon, Briefcase, User, Settings, Save, Eye, ChevronLeft, Link as LinkIcon, Code, Hash, LayoutDashboard, Mail, MessageSquare, Sparkles, Github, Bird, Music, Monitor, Smartphone, Tablet, LayoutTemplate, FileText } from "lucide-react";
 import Link from "next/link";
 import {
   DndContext,
@@ -496,7 +496,7 @@ export default function Builder() {
                       <DraggableSidebarItem id="sidebar-skills" type="skills" label="Skills" icon={Hash} />
                       <DraggableSidebarItem id="sidebar-blog" type="blog" label="Notes / Blog" icon={FileText} />
                       <DraggableSidebarItem id="sidebar-github" type="github" label="GitHub" icon={Github} />
-                      <DraggableSidebarItem id="sidebar-twitter" type="twitter" label="Twitter/X" icon={Twitter} />
+                      <DraggableSidebarItem id="sidebar-twitter" type="twitter" label="Twitter/X" icon={Bird} />
                       <DraggableSidebarItem id="sidebar-spotify" type="spotify" label="Spotify" icon={Music} />
                       <DraggableSidebarItem id="sidebar-social" type="social" label="Social Links" icon={LinkIcon} />
                       <DraggableSidebarItem id="sidebar-testimonials" type="testimonials" label="Testimonials" icon={MessageSquare} />
