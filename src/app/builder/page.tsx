@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Layout, Type, Image as ImageIcon, Briefcase, User, Settings, Save, Eye, ChevronLeft, Link as LinkIcon, Code, Hash, LayoutDashboard, Mail, MessageSquare, Sparkles, Github, Twitter, Music, Monitor, Smartphone, Tablet, LayoutTemplate, FileText } from "lucide-react";
+import { Layout, Type, Image as ImageIcon, Briefcase, User, Settings, Save, Eye, ChevronLeft, Link as LinkIcon, Code, Hash, LayoutDashboard, Mail, MessageSquare, Sparkles, GitBranch, Bird, Music, Monitor, Smartphone, Tablet, LayoutTemplate, FileText } from "lucide-react";
 import Link from "next/link";
 import {
   DndContext,
@@ -495,8 +495,8 @@ export default function Builder() {
                       <DraggableSidebarItem id="sidebar-projects" type="projects" label="Projects" icon={Code} />
                       <DraggableSidebarItem id="sidebar-skills" type="skills" label="Skills" icon={Hash} />
                       <DraggableSidebarItem id="sidebar-blog" type="blog" label="Notes / Blog" icon={FileText} />
-                      <DraggableSidebarItem id="sidebar-github" type="github" label="GitHub" icon={Github} />
-                      <DraggableSidebarItem id="sidebar-twitter" type="twitter" label="Twitter/X" icon={Twitter} />
+                      <DraggableSidebarItem id="sidebar-github" type="github" label="GitHub" icon={GitBranch} />
+                      <DraggableSidebarItem id="sidebar-twitter" type="twitter" label="Twitter/X" icon={Bird} />
                       <DraggableSidebarItem id="sidebar-spotify" type="spotify" label="Spotify" icon={Music} />
                       <DraggableSidebarItem id="sidebar-social" type="social" label="Social Links" icon={LinkIcon} />
                       <DraggableSidebarItem id="sidebar-testimonials" type="testimonials" label="Testimonials" icon={MessageSquare} />
@@ -906,6 +906,11 @@ export default function Builder() {
                             }}
                             className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
                           />
+                          <button onClick={() => {
+                            const newItems = [...selectedBlock.content.items];
+                            newItems.splice(index, 1);
+                            updateBlockContent(selectedBlock.id, { items: newItems });
+                          }} className="text-[10px] text-destructive">Remove</button>
                         </div>
                       ))}
                     </div>
@@ -947,33 +952,6 @@ export default function Builder() {
                         />
                         <p className="text-[10px] text-muted-foreground">Go to Spotify -&gt; Share -&gt; Embed Track/Playlist, and copy the `src` URL.</p>
                       </div>
-                    </div>
-                  )}
-
-                            type="text" placeholder="Description" value={item.desc}
-                            onChange={(e) => {
-                              const newItems = [...selectedBlock.content.items];
-                              newItems[index].desc = e.target.value;
-                              updateBlockContent(selectedBlock.id, { items: newItems });
-                            }}
-                            className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
-                          />
-                          <input 
-                            type="text" placeholder="Link URL" value={item.link}
-                            onChange={(e) => {
-                              const newItems = [...selectedBlock.content.items];
-                              newItems[index].link = e.target.value;
-                              updateBlockContent(selectedBlock.id, { items: newItems });
-                            }}
-                            className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
-                          />
-                          <button onClick={() => {
-                            const newItems = [...selectedBlock.content.items];
-                            newItems.splice(index, 1);
-                            updateBlockContent(selectedBlock.id, { items: newItems });
-                          }} className="text-[10px] text-destructive">Remove</button>
-                        </div>
-                      ))}
                     </div>
                   )}
 
