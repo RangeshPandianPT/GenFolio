@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Briefcase, ExternalLink, Image as ImageIcon, Sparkles, Mail, MessageSquare, Github, Star, GitFork } from "lucide-react";
+import { Briefcase, ExternalLink, Image as ImageIcon, Sparkles, Mail, MessageSquare, GitBranch, Star, GitFork } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { db } from "@/lib/firebase";
@@ -178,7 +178,7 @@ export function PortfolioViewer({ portfolioData }: PortfolioViewerProps) {
               <div className="p-6 bg-card border border-border/50 rounded-2xl shadow-sm relative overflow-hidden mt-4">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-12 h-12 bg-foreground/5 rounded-full flex items-center justify-center">
-                    <Github className="w-6 h-6 text-foreground" />
+                    <GitBranch className="w-6 h-6 text-foreground" />
                   </div>
                   <div>
                     <h3 className="font-bold text-xl">{block.content?.username || "Github Username"}</h3>
