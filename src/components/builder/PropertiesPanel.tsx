@@ -7,6 +7,7 @@ interface PropertiesPanelProps {
   isGeneratingBio: boolean;
   uploadingState: { [key: string]: boolean };
   handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>, blockId: string, path: string, arrayIndex?: number) => void;
+  refineText?: (blockId: string, text: string, context: string, path: string, arrayIndex?: number) => void;
 }
 
 export function PropertiesPanel({
@@ -15,7 +16,8 @@ export function PropertiesPanel({
   generateBio,
   isGeneratingBio,
   uploadingState,
-  handleFileUpload
+  handleFileUpload,
+  refineText
 }: PropertiesPanelProps) {
   if (!selectedBlock) {
     return (
@@ -137,7 +139,15 @@ export function PropertiesPanel({
             />
           </div>
           <div className="space-y-2">
-            <label className="text-xs font-medium">Description</label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium">Description</label>
+              <button
+                onClick={() => refineText && refineText(selectedBlock.id, selectedBlock.content?.description || "", "Professional experience description", "description")}
+                className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded hover:bg-primary/20 transition-colors"
+              >
+                ✨ AI Refine
+              </button>
+            </div>
             <textarea
               value={selectedBlock.content?.description || ""}
               onChange={(e) => updateBlockContent(selectedBlock.id, { description: e.target.value })}
@@ -198,15 +208,23 @@ export function PropertiesPanel({
                 }}
                 className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
               />
-              <input
-                type="text" placeholder="Description" value={item.desc}
-                onChange={(e) => {
-                  const newItems = [...selectedBlock.content.items];
-                  newItems[index].desc = e.target.value;
-                  updateBlockContent(selectedBlock.id, { items: newItems });
-                }}
-                className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
-              />
+              <div className="relative">
+                <input
+                  type="text" placeholder="Description" value={item.desc}
+                  onChange={(e) => {
+                    const newItems = [...selectedBlock.content.items];
+                    newItems[index].desc = e.target.value;
+                    updateBlockContent(selectedBlock.id, { items: newItems });
+                  }}
+                  className="w-full text-xs px-2 py-1 pr-16 bg-background border border-border rounded"
+                />
+                <button
+                  onClick={() => refineText && refineText(selectedBlock.id, item.desc, "Project short description", "items", index)}
+                  className="absolute right-1 top-1 bottom-1 text-[8px] bg-primary/10 text-primary px-1.5 rounded hover:bg-primary/20 transition-colors flex items-center justify-center"
+                >
+                  ✨ Refine
+                </button>
+              </div>
               <input
                 type="text" placeholder="Link URL" value={item.link}
                 onChange={(e) => {
@@ -447,6 +465,167 @@ export function PropertiesPanel({
                 newPosts.splice(index, 1);
                 updateBlockContent(selectedBlock.id, { posts: newPosts });
               }} className="text-[10px] text-destructive">Remove Post</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {selectedBlock.type === "education" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-medium">Education History</h4>
+            <button
+              onClick={() => {
+                const newItems = [...(selectedBlock.content?.items || []), { school: "", degree: "", period: "", description: "" }];
+                updateBlockContent(selectedBlock.id, { items: newItems });
+              }}
+              className="text-[10px] bg-secondary px-2 py-1 rounded"
+            >+ Add</button>
+          </div>
+          {(selectedBlock.content?.items || []).map((item: any, index: number) => (
+            <div key={index} className="p-3 border border-border rounded-md space-y-2 bg-secondary/20">
+              <input
+                type="text" placeholder="School/University" value={item.school}
+                onChange={(e) => {
+                  const newItems = [...selectedBlock.content.items];
+                  newItems[index].school = e.target.value;
+                  updateBlockContent(selectedBlock.id, { items: newItems });
+                }}
+                className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
+              />
+              <input
+                type="text" placeholder="Degree/Certificate" value={item.degree}
+                onChange={(e) => {
+                  const newItems = [...selectedBlock.content.items];
+                  newItems[index].degree = e.target.value;
+                  updateBlockContent(selectedBlock.id, { items: newItems });
+                }}
+                className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
+              />
+              <input
+                type="text" placeholder="Period (e.g. 2016-2020)" value={item.period}
+                onChange={(e) => {
+                  const newItems = [...selectedBlock.content.items];
+                  newItems[index].period = e.target.value;
+                  updateBlockContent(selectedBlock.id, { items: newItems });
+                }}
+                className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
+              />
+              <div className="relative">
+                <textarea
+                  placeholder="Description" value={item.description}
+                  onChange={(e) => {
+                    const newItems = [...selectedBlock.content.items];
+                    newItems[index].description = e.target.value;
+                    updateBlockContent(selectedBlock.id, { items: newItems });
+                  }}
+                  className="w-full text-xs px-2 py-1 bg-background border border-border rounded resize-none min-h-[60px]"
+                />
+                <button
+                  onClick={() => refineText && refineText(selectedBlock.id, item.description, "Education description", "items", index)}
+                  className="absolute right-2 top-2 text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded hover:bg-primary/20 transition-colors"
+                >
+                  ✨ AI Refine
+                </button>
+              </div>
+              <button onClick={() => {
+                const newItems = [...selectedBlock.content.items];
+                newItems.splice(index, 1);
+                updateBlockContent(selectedBlock.id, { items: newItems });
+              }} className="text-[10px] text-destructive">Remove</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {selectedBlock.type === "pricing" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-medium">Pricing Tiers</h4>
+            <button
+              onClick={() => {
+                const newItems = [...(selectedBlock.content?.items || []), { tier: "New Tier", price: "$0", features: ["Feature 1"] }];
+                updateBlockContent(selectedBlock.id, { items: newItems });
+              }}
+              className="text-[10px] bg-secondary px-2 py-1 rounded"
+            >+ Add</button>
+          </div>
+          {(selectedBlock.content?.items || []).map((item: any, index: number) => (
+            <div key={index} className="p-3 border border-border rounded-md space-y-2 bg-secondary/20">
+              <input
+                type="text" placeholder="Tier Name" value={item.tier}
+                onChange={(e) => {
+                  const newItems = [...selectedBlock.content.items];
+                  newItems[index].tier = e.target.value;
+                  updateBlockContent(selectedBlock.id, { items: newItems });
+                }}
+                className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
+              />
+              <input
+                type="text" placeholder="Price" value={item.price}
+                onChange={(e) => {
+                  const newItems = [...selectedBlock.content.items];
+                  newItems[index].price = e.target.value;
+                  updateBlockContent(selectedBlock.id, { items: newItems });
+                }}
+                className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
+              />
+              <textarea
+                placeholder="Features (comma separated)" value={(item.features || []).join(", ")}
+                onChange={(e) => {
+                  const newItems = [...selectedBlock.content.items];
+                  newItems[index].features = e.target.value.split(",").map((f: string) => f.trim()).filter(Boolean);
+                  updateBlockContent(selectedBlock.id, { items: newItems });
+                }}
+                className="w-full text-xs px-2 py-1 bg-background border border-border rounded resize-none min-h-[60px]"
+              />
+              <button onClick={() => {
+                const newItems = [...selectedBlock.content.items];
+                newItems.splice(index, 1);
+                updateBlockContent(selectedBlock.id, { items: newItems });
+              }} className="text-[10px] text-destructive">Remove</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {selectedBlock.type === "faq" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-medium">FAQ Items</h4>
+            <button
+              onClick={() => {
+                const newItems = [...(selectedBlock.content?.items || []), { question: "", answer: "" }];
+                updateBlockContent(selectedBlock.id, { items: newItems });
+              }}
+              className="text-[10px] bg-secondary px-2 py-1 rounded"
+            >+ Add</button>
+          </div>
+          {(selectedBlock.content?.items || []).map((item: any, index: number) => (
+            <div key={index} className="p-3 border border-border rounded-md space-y-2 bg-secondary/20">
+              <input
+                type="text" placeholder="Question" value={item.question}
+                onChange={(e) => {
+                  const newItems = [...selectedBlock.content.items];
+                  newItems[index].question = e.target.value;
+                  updateBlockContent(selectedBlock.id, { items: newItems });
+                }}
+                className="w-full text-xs px-2 py-1 bg-background border border-border rounded"
+              />
+              <textarea
+                placeholder="Answer" value={item.answer}
+                onChange={(e) => {
+                  const newItems = [...selectedBlock.content.items];
+                  newItems[index].answer = e.target.value;
+                  updateBlockContent(selectedBlock.id, { items: newItems });
+                }}
+                className="w-full text-xs px-2 py-1 bg-background border border-border rounded resize-none min-h-[60px]"
+              />
+              <button onClick={() => {
+                const newItems = [...selectedBlock.content.items];
+                newItems.splice(index, 1);
+                updateBlockContent(selectedBlock.id, { items: newItems });
+              }} className="text-[10px] text-destructive">Remove</button>
             </div>
           ))}
         </div>
