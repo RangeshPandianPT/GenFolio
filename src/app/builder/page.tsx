@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Layout, Type, Image as ImageIcon, Briefcase, User, Settings, Save, Eye, ChevronLeft, Link as LinkIcon, Code, Hash, LayoutDashboard, Mail, MessageSquare, Sparkles, GitBranch, Bird, Music, Monitor, Smartphone, Tablet, LayoutTemplate, FileText } from "lucide-react";
+import { Layout, Type, Image as ImageIcon, Briefcase, User, Settings, Save, Eye, ChevronLeft, Link as LinkIcon, Code, Hash, LayoutDashboard, Mail, MessageSquare, Sparkles, GitBranch, Bird, Music, Monitor, Smartphone, Tablet, LayoutTemplate, FileText, GraduationCap, DollarSign, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import {
   DndContext,
@@ -52,6 +52,9 @@ const getDefaultContent = (type: string) => {
     case "twitter": return { username: "yourusername", tweetUrl: "" };
     case "spotify": return { embedUrl: "" };
     case "blog": return { title: "My Thoughts", posts: [{ title: "First Post", date: "Today", content: "Markdown content here..." }] };
+    case "education": return { items: [{ school: "University Name", degree: "Bachelor's Degree", period: "2016 - 2020", description: "Graduated with honors." }] };
+    case "pricing": return { items: [{ tier: "Basic", price: "$99", features: ["1 Page", "Basic Support"] }, { tier: "Pro", price: "$299", features: ["5 Pages", "Priority Support"] }] };
+    case "faq": return { items: [{ question: "What is your process?", answer: "I start with discovery, then design, and finally development." }] };
     default: return {};
   }
 };
@@ -323,6 +326,36 @@ export default function Builder() {
     }
   };
 
+  const refineText = async (blockId: string, text: string, context: string, path: string, arrayIndex?: number) => {
+    if (!text) return;
+    try {
+      const res = await fetch("/api/refine-text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, context }),
+      });
+      if (!res.ok) throw new Error("Failed to refine text");
+      const data = await res.json();
+      
+      const block = blocks.find(b => b.id === blockId);
+      if (!block) return;
+      
+      if (typeof arrayIndex === 'number' && block.content[path] && Array.isArray(block.content[path])) {
+        const newArray = [...block.content[path]];
+        newArray[arrayIndex].description = data.refinedText; // Assuming we refine description, might need to customize this
+        if (path === 'items' && newArray[arrayIndex].desc !== undefined) {
+           newArray[arrayIndex].desc = data.refinedText;
+        }
+        updateBlockContent(blockId, { [path]: newArray });
+      } else {
+        updateBlockContent(blockId, { [path]: data.refinedText });
+      }
+    } catch (error) {
+      console.error("Text refinement error:", error);
+      alert("Failed to refine text with AI.");
+    }
+  };
+
   const savePortfolio = async (publish: boolean) => {
     setIsSaving(true);
     try {
@@ -494,7 +527,10 @@ export default function Builder() {
                       <DraggableSidebarItem id="sidebar-experience" type="experience" label="Experience" icon={Briefcase} />
                       <DraggableSidebarItem id="sidebar-gallery" type="gallery" label="Gallery" icon={ImageIcon} />
                       <DraggableSidebarItem id="sidebar-projects" type="projects" label="Projects" icon={Code} />
+                      <DraggableSidebarItem id="sidebar-education" type="education" label="Education" icon={GraduationCap} />
                       <DraggableSidebarItem id="sidebar-skills" type="skills" label="Skills" icon={Hash} />
+                      <DraggableSidebarItem id="sidebar-pricing" type="pricing" label="Pricing" icon={DollarSign} />
+                      <DraggableSidebarItem id="sidebar-faq" type="faq" label="FAQ" icon={HelpCircle} />
                       <DraggableSidebarItem id="sidebar-blog" type="blog" label="Notes / Blog" icon={FileText} />
                       <DraggableSidebarItem id="sidebar-github" type="github" label="GitHub" icon={GitBranch} />
                       <DraggableSidebarItem id="sidebar-twitter" type="twitter" label="Twitter/X" icon={Bird} />
@@ -716,14 +752,17 @@ export default function Builder() {
                 <div className="h-full flex flex-col items-center justify-center text-center">
                   <p className="text-xs text-muted-foreground">Select an element to edit its properties.</p>
                 </div>
-              <PropertiesPanel 
-                selectedBlock={selectedBlock}
-                updateBlockContent={updateBlockContent}
-                generateBio={generateBio}
-                isGeneratingBio={isGeneratingBio}
-                uploadingState={uploadingState}
-                handleFileUpload={handleFileUpload}
-              />
+              ) : (
+                <PropertiesPanel 
+                  selectedBlock={selectedBlock}
+                  updateBlockContent={updateBlockContent}
+                  generateBio={generateBio}
+                  isGeneratingBio={isGeneratingBio}
+                  uploadingState={uploadingState}
+                  handleFileUpload={handleFileUpload}
+                  refineText={refineText}
+                />
+              )}
             </div>
           </aside>
         </div>
