@@ -238,6 +238,59 @@ export function PortfolioViewer({ portfolioData }: PortfolioViewerProps) {
                 ))}
               </div>
             )}
+            
+            {block.type === "education" && (
+              <div className="space-y-6 p-8 bg-card rounded-2xl border border-border/50 shadow-sm pt-4">
+                <h3 className="text-2xl font-bold border-b border-border/50 pb-4">Education</h3>
+                <div className="space-y-6">
+                  {(block.content?.items || []).map((item: any, i: number) => (
+                    <div key={i} className="relative pl-8 before:absolute before:left-0 before:top-2 before:w-3 before:h-3 before:bg-primary before:rounded-full before:ring-4 before:ring-primary/20">
+                      <h4 className="text-xl font-bold">{item.school}</h4>
+                      <div className="flex items-center gap-2 text-primary font-medium mt-1">
+                        <span>{item.degree}</span>
+                        <span className="text-muted-foreground/50">•</span>
+                        <span className="text-muted-foreground">{item.period}</span>
+                      </div>
+                      <p className="text-muted-foreground mt-3 leading-relaxed whitespace-pre-wrap">{item.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {block.type === "pricing" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
+                {(block.content?.items || []).map((tier: any, i: number) => (
+                  <div key={i} className="p-8 bg-card border border-border/50 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group flex flex-col text-center">
+                    <h4 className="font-bold text-xl mb-2">{tier.tier}</h4>
+                    <div className="text-4xl font-extrabold mb-6 text-primary">{tier.price}</div>
+                    <ul className="space-y-3 mb-8 flex-1 text-muted-foreground text-left">
+                      {(tier.features || []).map((feat: string, j: number) => (
+                        <li key={j} className="flex items-start gap-2">
+                          <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                          <span>{feat}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <button className="py-3 px-4 bg-primary text-primary-foreground font-semibold rounded-xl opacity-90 group-hover:opacity-100 transition-opacity">Get Started</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {block.type === "faq" && (
+              <div className="p-8 bg-card border border-border/50 rounded-2xl shadow-sm space-y-6 pt-4">
+                <h3 className="text-2xl font-bold border-b border-border/50 pb-4 text-center">Frequently Asked Questions</h3>
+                <div className="space-y-4">
+                  {(block.content?.items || []).map((item: any, i: number) => (
+                    <div key={i} className="p-6 bg-secondary/10 rounded-xl border border-border/30">
+                      <h4 className="font-bold text-lg mb-2">{item.question}</h4>
+                      <p className="text-muted-foreground leading-relaxed">{item.answer}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </motion.div>
         ))}
       </motion.div>

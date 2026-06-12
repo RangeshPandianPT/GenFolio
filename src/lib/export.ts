@@ -101,6 +101,55 @@ export async function exportPortfolioToZip(portfolioData: any) {
       ${(block.content?.links || []).map((link: any) => `<a href="${link.url}" class="px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium rounded-full hover:opacity-90 transition-opacity" target="_blank">${link.platform}</a>`).join('\n      ')}
     </div>\n`;
         break;
+
+      case 'education':
+        htmlContent += `    <div class="space-y-6 p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 mb-8 radius-custom">
+      <h3 class="text-2xl font-bold border-b border-gray-200 dark:border-gray-700 pb-4">Education</h3>
+      <div class="space-y-6">
+        ${(block.content?.items || []).map((item: any) => `
+        <div class="relative pl-8 before:absolute before:left-0 before:top-2 before:w-3 before:h-3 before:bg-primary before:rounded-full before:ring-4 before:ring-primary/20">
+          <h4 class="text-xl font-bold">${item.school || ''}</h4>
+          <div class="flex items-center gap-2 text-primary font-medium mt-1">
+            <span>${item.degree || ''}</span>
+            <span class="text-gray-400">•</span>
+            <span class="text-gray-500">${item.period || ''}</span>
+          </div>
+          <p class="text-gray-500 dark:text-gray-400 mt-3 leading-relaxed whitespace-pre-wrap">${item.description || ''}</p>
+        </div>`).join('\n        ')}
+      </div>
+    </div>\n`;
+        break;
+
+      case 'pricing':
+        htmlContent += `    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      ${(block.content?.items || []).map((tier: any) => `
+      <div class="p-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group flex flex-col text-center radius-custom">
+        <h4 class="font-bold text-xl mb-2">${tier.tier || ''}</h4>
+        <div class="text-4xl font-extrabold mb-6 text-primary">${tier.price || ''}</div>
+        <ul class="space-y-3 mb-8 flex-1 text-gray-500 dark:text-gray-400 text-left">
+          ${(tier.features || []).map((feat: string) => `
+          <li class="flex items-start gap-2">
+            <svg class="w-4 h-4 text-primary shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+            <span>${feat}</span>
+          </li>`).join('')}
+        </ul>
+        <button class="py-3 px-4 bg-primary text-white font-semibold rounded-xl opacity-90 hover:opacity-100 transition-opacity w-full">Get Started</button>
+      </div>`).join('\n      ')}
+    </div>\n`;
+        break;
+
+      case 'faq':
+        htmlContent += `    <div class="p-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm space-y-6 mb-8 radius-custom">
+      <h3 class="text-2xl font-bold border-b border-gray-200 dark:border-gray-700 pb-4 text-center">Frequently Asked Questions</h3>
+      <div class="space-y-4">
+        ${(block.content?.items || []).map((item: any) => `
+        <div class="p-6 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+          <h4 class="font-bold text-lg mb-2">${item.question || ''}</h4>
+          <p class="text-gray-500 dark:text-gray-400 leading-relaxed">${item.answer || ''}</p>
+        </div>`).join('\n        ')}
+      </div>
+    </div>\n`;
+        break;
     }
   });
 
