@@ -4,6 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Trash2, Briefcase, ExternalLink, Image as ImageIcon, Sparkles, Mail, MessageSquare, GitBranch, Star, GitFork, Bird, Music } from "lucide-react";
 import { motion } from "framer-motion";
+import { GitHubWidget } from "@/components/portfolio/github-widget";
 
 interface SortableCanvasItemProps {
   id: string;
@@ -170,29 +171,9 @@ export function SortableCanvasItem({ id, type, content = {}, isSelected = false,
         );
       case "github":
         return (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 bg-card border border-border/50 rounded-2xl shadow-sm relative overflow-hidden group">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-foreground/5 rounded-full flex items-center justify-center">
-                <GitBranch className="w-6 h-6 text-foreground" />
-              </div>
-              <div>
-                <h3 className="font-bold text-lg">{content.username || "Github Username"}</h3>
-                <p className="text-sm text-muted-foreground">Top Repositories</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pointer-events-none">
-              {(content.repos || [{name: "repo-name", desc: "A short description", stars: 12, forks: 4}]).map((repo: any, i: number) => (
-                <div key={i} className="p-4 bg-background border border-border/50 rounded-xl">
-                  <h4 className="font-semibold text-primary mb-2">{repo.name}</h4>
-                  <p className="text-xs text-muted-foreground mb-3">{repo.desc}</p>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1"><Star className="w-3 h-3" /> {repo.stars}</span>
-                    <span className="flex items-center gap-1"><GitFork className="w-3 h-3" /> {repo.forks}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
+          <div className="pointer-events-none">
+            <GitHubWidget username={content.username || "octocat"} />
+          </div>
         );
       case "twitter":
         return (
