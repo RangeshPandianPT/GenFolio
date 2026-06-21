@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Briefcase, ExternalLink, Image as ImageIcon, Sparkles, Mail, MessageSquare, GitBranch, Star, GitFork } from "lucide-react";
 import Link from "next/link";
+import { GitHubWidget } from "@/components/portfolio/github-widget";
 import { useState } from "react";
 import { db } from "@/lib/firebase";
 import { collection, addDoc } from "firebase/firestore";
@@ -175,30 +176,8 @@ export function PortfolioViewer({ portfolioData }: PortfolioViewerProps) {
             )}
 
             {block.type === "github" && (
-              <div className="p-6 bg-card border border-border/50 rounded-2xl shadow-sm relative overflow-hidden mt-4">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 bg-foreground/5 rounded-full flex items-center justify-center">
-                    <GitBranch className="w-6 h-6 text-foreground" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-xl">{block.content?.username || "Github Username"}</h3>
-                    <a href={`https://github.com/${block.content?.username || ""}`} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline">View Profile &rarr;</a>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(block.content?.repos || []).map((repo: any, i: number) => (
-                    <a key={i} href={`https://github.com/${block.content?.username}/${repo.name}`} target="_blank" rel="noreferrer" className="p-4 bg-background border border-border/50 rounded-xl hover:border-primary/50 transition-colors group block">
-                      <h4 className="font-semibold text-primary mb-2 group-hover:underline flex items-center justify-between">
-                        {repo.name} <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </h4>
-                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{repo.desc}</p>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1"><Star className="w-3 h-3" /> {repo.stars}</span>
-                        <span className="flex items-center gap-1"><GitFork className="w-3 h-3" /> {repo.forks}</span>
-                      </div>
-                    </a>
-                  ))}
-                </div>
+              <div className="mt-4">
+                <GitHubWidget username={block.content?.username || "octocat"} />
               </div>
             )}
 
